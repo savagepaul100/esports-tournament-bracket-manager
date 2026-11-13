@@ -188,21 +188,33 @@ public class TournamentsView extends VBox {
         TextField txtName = new TextField();
         txtName.setPromptText("e.g. VALORANT APEX CHALLENGERS");
 
-        TextField txtGame = new TextField();
-        txtGame.setPromptText("e.g. Valorant / Free Fire / BGMI");
+        ComboBox<String> cmbGame = new ComboBox<>();
+        cmbGame.getItems().addAll(
+                "COUNTER-STRIKE 2",
+                "VALORANT",
+                "LEAGUE OF LEGENDS",
+                "DOTA 2",
+                "RAINBOW SIX SIEGE",
+                "BGMI",
+                "CALL OF DUTY: WARZONE",
+                "ROCKET LEAGUE",
+                "APEX LEGENDS"
+        );
+        cmbGame.setValue("COUNTER-STRIKE 2");
+        cmbGame.setEditable(true);
 
         ComboBox<String> cmbMode = new ComboBox<>();
         cmbMode.getItems().addAll("SINGLE_ELIMINATION_TDM", "SINGLE_ELIMINATION_CLASH", "BATTLE_ROYALE");
         cmbMode.setValue("SINGLE_ELIMINATION_TDM");
 
         TextField txtMax = new TextField("8");
-        TextArea txtRules = new TextArea("Standard fair play rules. Anti-cheat screen recording mandatory.");
+        TextArea txtRules = new TextArea("Standard competitive rules. Anti-cheat screen recording mandatory.");
         txtRules.setPrefRowCount(3);
 
         grid.add(new Label("Tournament Name:"), 0, 0);
         grid.add(txtName, 1, 0);
-        grid.add(new Label("Game:"), 0, 1);
-        grid.add(txtGame, 1, 1);
+        grid.add(new Label("Esports Game:"), 0, 1);
+        grid.add(cmbGame, 1, 1);
         grid.add(new Label("Format / Mode:"), 0, 2);
         grid.add(cmbMode, 1, 2);
         grid.add(new Label("Max Teams:"), 0, 3);
@@ -218,7 +230,8 @@ public class TournamentsView extends VBox {
             if (dialogButton == btnCreateType) {
                 TournamentDto t = new TournamentDto();
                 t.setName(txtName.getText().isBlank() ? "Untitled Tournament" : txtName.getText());
-                t.setGame(txtGame.getText().isBlank() ? "Competitive Esports" : txtGame.getText());
+                String selectedGame = cmbGame.getValue() != null && !cmbGame.getValue().isBlank() ? cmbGame.getValue() : "COUNTER-STRIKE 2";
+                t.setGame(selectedGame);
                 t.setMode(cmbMode.getValue());
                 try {
                     t.setMaxParticipants(Integer.parseInt(txtMax.getText()));

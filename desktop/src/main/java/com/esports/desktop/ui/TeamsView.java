@@ -10,7 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
-import java.util.List;
+import java.util.*;
 
 public class TeamsView extends VBox {
     private final ApiClient apiClient;
@@ -25,33 +25,41 @@ public class TeamsView extends VBox {
 
         // Header
         VBox headerBox = new VBox(4);
-        Label title = new Label("TEAMS & REGISTRATION MANAGEMENT");
+        Label title = new Label("TEAMS & ROSTER MANAGEMENT");
         title.getStyleClass().add("view-title");
-        Label subtitle = new Label("Approve or reject team applications, inspect rosters, and track check-in readiness.");
+        Label subtitle = new Label("Password-protected team registrations, roster editing, player removal, and check-in tracking.");
         subtitle.getStyleClass().add("view-subtitle");
         headerBox.getChildren().addAll(title, subtitle);
 
         // Filter / Controls bar
-        HBox topBar = new HBox(12);
+        HBox topBar = new HBox(10);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
-        Label lblSelect = new Label("Select Tournament:");
-        lblSelect.setStyle("-fx-font-weight: bold; -fx-text-fill: #94a3b8;");
+        Label lblSelect = new Label("Tournament:");
+        lblSelect.setStyle("-fx-font-weight: bold; -fx-text-fill: #a1a1aa;");
 
         cmbTournament = new ComboBox<>();
-        cmbTournament.setPrefWidth(320);
+        cmbTournament.setPrefWidth(260);
         cmbTournament.setOnAction(e -> loadTeams());
 
-        Button btnApprove = new Button("✓ Approve Registration");
-        btnApprove.getStyleClass().add("btn-success");
-        btnApprove.setOnAction(e -> updateStatus("APPROVED"));
+        Button btnRegister = new Button("+ Register Team");
+        btnRegister.getStyleClass().add("btn-primary");
+        btnRegister.setOnAction(e -> showRegisterDialog());
 
-        Button btnReject = new Button("✗ Reject Registration");
-        btnReject.getStyleClass().add("btn-danger");
-        btnReject.setOnAction(e -> updateStatus("REJECTED"));
+        Button btnEdit = new Button("✏️ Modify Team");
+        btnEdit.getStyleClass().add("btn-cyan");
+        btnEdit.setOnAction(e -> showEditTeamDialog());
+
+        Button btnRemovePlayer = new Button("👤 Remove Player");
+        btnRemovePlayer.getStyleClass().add("btn-outline");
+        btnRemovePlayer.setOnAction(e -> showRemovePlayerDialog());
+
+        Button btnDeleteTeam = new Button("🗑️ Delete Team");
+        btnDeleteTeam.getStyleClass().add("btn-danger");
+        btnDeleteTeam.setOnAction(e -> deleteSelectedTeam());
 
         Button btnCheckIn = new Button("Toggle Check-In");
-        btnCheckIn.getStyleClass().add("btn-cyan");
+        btnCheckIn.getStyleClass().add("btn-outline");
         btnCheckIn.setOnAction(e -> toggleCheckIn());
 
         Button btnRefresh = new Button("↻ Refresh");
@@ -61,7 +69,7 @@ public class TeamsView extends VBox {
             loadTeams();
         });
 
-        topBar.getChildren().addAll(lblSelect, cmbTournament, btnApprove, btnReject, btnCheckIn, btnRefresh);
+        topBar.getChildren().addAll(lblSelect, cmbTournament, btnRegister, btnEdit, btnRemovePlayer, btnDeleteTeam, btnCheckIn, btnRefresh);
 
         // Table
         tableView = new TableView<>();
@@ -75,33 +83,40 @@ public class TeamsView extends VBox {
     private void setupTable() {
         TableColumn<TeamDto, String> colName = new TableColumn<>("TEAM NAME");
         colName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getName()));
-        colName.setPrefWidth(180);
+        colName.setPrefWidth(170);
 
         TableColumn<TeamDto, String> colTag = new TableColumn<>("TAG");
         colTag.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTag()));
-        colTag.setPrefWidth(80);
+        colTag.setPrefWidth(75);
 
-        TableColumn<TeamDto, String> colCaptain = new TableColumn<>("CAPTAIN");
-        colCaptain.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCaptainEmail() != null ? c.getValue().getCaptainEmail() : c.getValue().getCaptainId()));
-        colCaptain.setPrefWidth(180);
+        TableColumn<TeamDto, String> colAuth = new TableColumn<>("SESSION AUTH");
+        colAuth.setCellValueFactory(c -> {
+            boolean unlocked = apiClient.isTeamUnlockedThisSession(c.getValue().getId());
+            return new SimpleStringProperty(unlocked ? "🔓 UNLOCKED" : "🔒 PROTECTED");
+        });
+        colAuth.setPrefWidth(110);
+
+        TableColumn<TeamDto, String> colCaptain = new TableColumn<>("CAPTAIN EMAIL");
+        colCaptain.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCaptainEmail() != null ? c.getValue().getCaptainEmail() : "-"));
+        colCaptain.setPrefWidth(170);
 
         TableColumn<TeamDto, String> colRoster = new TableColumn<>("ROSTER PLAYERS");
         colRoster.setCellValueFactory(c -> new SimpleStringProperty(String.join(", ", c.getValue().getPlayerNames())));
-        colRoster.setPrefWidth(300);
+        colRoster.setPrefWidth(280);
 
         TableColumn<TeamDto, String> colSeed = new TableColumn<>("SEED");
         colSeed.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getSeed() != null ? "#" + c.getValue().getSeed() : "-"));
-        colSeed.setPrefWidth(70);
+        colSeed.setPrefWidth(65);
 
-        TableColumn<TeamDto, String> colStatus = new TableColumn<>("REGISTRATION");
+        TableColumn<TeamDto, String> colStatus = new TableColumn<>("STATUS");
         colStatus.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRegistrationStatus()));
-        colStatus.setPrefWidth(140);
+        colStatus.setPrefWidth(110);
 
-        TableColumn<TeamDto, String> colCheckIn = new TableColumn<>("CHECKED IN");
+        TableColumn<TeamDto, String> colCheckIn = new TableColumn<>("CHECK-IN");
         colCheckIn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().isCheckedIn() ? "READY" : "NO"));
-        colCheckIn.setPrefWidth(100);
+        colCheckIn.setPrefWidth(85);
 
-        tableView.getColumns().addAll(colName, colTag, colCaptain, colRoster, colSeed, colStatus, colCheckIn);
+        tableView.getColumns().addAll(colName, colTag, colAuth, colCaptain, colRoster, colSeed, colStatus, colCheckIn);
     }
 
     private void loadTournaments() {
@@ -120,29 +135,282 @@ public class TeamsView extends VBox {
         tableView.setItems(FXCollections.observableArrayList(teams));
     }
 
-    private void updateStatus(String status) {
-        TeamDto selected = tableView.getSelectionModel().getSelectedItem();
+    /**
+     * Prompts for team password if not already unlocked during this session.
+     */
+    private boolean ensureTeamAuthorized(TeamDto team) {
+        if (apiClient.isTeamUnlockedThisSession(team.getId())) {
+            return true;
+        }
+
+        PasswordField pf = new PasswordField();
+        pf.setPromptText("Enter team security password");
+
+        Dialog<String> authDialog = new Dialog<>();
+        authDialog.setTitle("TEAM AUTHORIZATION REQUIRED");
+        authDialog.setHeaderText("Enter team password for '" + team.getName() + "' (Required once per session):");
+
+        ButtonType btnUnlock = new ButtonType("Unlock Team 🔓", ButtonBar.ButtonData.OK_DONE);
+        authDialog.getDialogPane().getButtonTypes().addAll(btnUnlock, ButtonType.CANCEL);
+
+        VBox box = new VBox(10);
+        box.setPadding(new Insets(20));
+        box.getChildren().addAll(new Label("Password:"), pf);
+        authDialog.getDialogPane().setContent(box);
+        CyberAlert.style(authDialog);
+
+        authDialog.setResultConverter(b -> (b == btnUnlock) ? pf.getText().trim() : null);
+
+        Optional<String> res = authDialog.showAndWait();
+        if (res.isPresent()) {
+            boolean valid = apiClient.unlockTeamWithPassword(team.getId(), res.get());
+            if (valid) {
+                CyberAlert.showInfo("Access Granted", "Team '" + team.getName() + "' is now unlocked for this session.");
+                tableView.refresh();
+                return true;
+            } else {
+                CyberAlert.showError("Access Denied", "Incorrect password for team '" + team.getName() + "'.");
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private void showRegisterDialog() {
+        TournamentDto selected = cmbTournament.getValue();
         if (selected == null) {
-            showAlert("Please select a team from the table first.");
+            CyberAlert.showInfo("Team Registration", "Please select a tournament first.");
             return;
         }
 
-        TextInputDialog dialog = new TextInputDialog("Decision by organizer");
-        dialog.setTitle("Registration Decision");
-        dialog.setHeaderText("Set registration status to " + status + " for " + selected.getName());
-        dialog.setContentText("Reason or notes for captain:");
+        Dialog<TeamDto> dialog = new Dialog<>();
+        dialog.setTitle("REGISTER NEW TEAM");
+        dialog.setHeaderText("Create team roster with mandatory strong password protection.");
+
+        ButtonType btnSave = new ButtonType("Register Team", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField txtName = new TextField();
+        txtName.setPromptText("e.g. Cloud9 / Team Secret");
+
+        TextField txtTag = new TextField();
+        txtTag.setPromptText("e.g. C9");
+
+        TextField txtEmail = new TextField();
+        txtEmail.setPromptText("captain@team.gg");
+
+        TextArea txtRoster = new TextArea();
+        txtRoster.setPromptText("Comma-separated player gamer tags, e.g. player1, player2, player3");
+        txtRoster.setPrefRowCount(3);
+
+        PasswordField txtPass = new PasswordField();
+        txtPass.setPromptText("At least 6 characters");
+
+        TextField txtSeed = new TextField("1");
+
+        grid.add(new Label("Team Name:"), 0, 0);
+        grid.add(txtName, 1, 0);
+        grid.add(new Label("Tag:"), 0, 1);
+        grid.add(txtTag, 1, 1);
+        grid.add(new Label("Captain Email:"), 0, 2);
+        grid.add(txtEmail, 1, 2);
+        grid.add(new Label("Roster (Players):"), 0, 3);
+        grid.add(txtRoster, 1, 3);
+        grid.add(new Label("Team Password:"), 0, 4);
+        grid.add(txtPass, 1, 4);
+        grid.add(new Label("Initial Seed:"), 0, 5);
+        grid.add(txtSeed, 1, 5);
+
+        dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
+
+        dialog.setResultConverter(b -> {
+            if (b == btnSave) {
+                if (txtName.getText().isBlank()) {
+                    CyberAlert.showError("Validation Error", "Team name is required.");
+                    return null;
+                }
+                if (txtPass.getText().trim().length() < 4) {
+                    CyberAlert.showError("Security Error", "Team password must be at least 4 characters long.");
+                    return null;
+                }
+                TeamDto t = new TeamDto();
+                t.setTournamentId(selected.getId());
+                t.setName(txtName.getText().trim());
+                t.setTag(txtTag.getText().trim());
+                t.setCaptainEmail(txtEmail.getText().trim());
+                t.setPassword(txtPass.getText().trim());
+                t.setCheckedIn(true);
+                t.setRegistrationStatus("APPROVED");
+
+                try {
+                    t.setSeed(Integer.parseInt(txtSeed.getText().trim()));
+                } catch (NumberFormatException ignored) {
+                    t.setSeed(1);
+                }
+
+                String[] players = txtRoster.getText().split("[,\\n]+");
+                List<String> pList = new ArrayList<>();
+                for (String p : players) {
+                    if (!p.trim().isEmpty()) pList.add(p.trim());
+                }
+                t.setPlayerNames(pList);
+                return t;
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(team -> {
+            boolean ok = apiClient.registerTeam(team);
+            if (ok) {
+                CyberAlert.showInfo("Team Registered", "Team '" + team.getName() + "' registered to Cloud Firestore and authorized for this session!");
+                loadTeams();
+            } else {
+                CyberAlert.showError("Registration Error", "Failed to register team.");
+            }
+        });
+    }
+
+    private void showEditTeamDialog() {
+        TeamDto selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            CyberAlert.showInfo("Modify Team", "Please select a team from the table first.");
+            return;
+        }
+
+        if (!ensureTeamAuthorized(selected)) {
+            return;
+        }
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("MODIFY TEAM DETAILS");
+        dialog.setHeaderText("Authorized modification for '" + selected.getName() + "'");
+
+        ButtonType btnSave = new ButtonType("Save Changes", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField txtName = new TextField(selected.getName());
+        TextField txtTag = new TextField(selected.getTag());
+        TextField txtEmail = new TextField(selected.getCaptainEmail() != null ? selected.getCaptainEmail() : "");
+        TextArea txtRoster = new TextArea(String.join(", ", selected.getPlayerNames()));
+        txtRoster.setPrefRowCount(3);
+        TextField txtSeed = new TextField(selected.getSeed() != null ? String.valueOf(selected.getSeed()) : "1");
+
+        grid.add(new Label("Team Name:"), 0, 0);
+        grid.add(txtName, 1, 0);
+        grid.add(new Label("Tag:"), 0, 1);
+        grid.add(txtTag, 1, 1);
+        grid.add(new Label("Captain Email:"), 0, 2);
+        grid.add(txtEmail, 1, 2);
+        grid.add(new Label("Roster (Players):"), 0, 3);
+        grid.add(txtRoster, 1, 3);
+        grid.add(new Label("Seed:"), 0, 4);
+        grid.add(txtSeed, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
+
+        dialog.showAndWait().ifPresent(b -> {
+            if (b == btnSave) {
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("name", txtName.getText().trim());
+                updates.put("tag", txtTag.getText().trim());
+                updates.put("captainEmail", txtEmail.getText().trim());
+
+                String[] players = txtRoster.getText().split("[,\\n]+");
+                List<String> pList = new ArrayList<>();
+                for (String p : players) {
+                    if (!p.trim().isEmpty()) pList.add(p.trim());
+                }
+                updates.put("playerNames", pList);
+
+                try {
+                    updates.put("seed", Integer.parseInt(txtSeed.getText().trim()));
+                } catch (NumberFormatException ignored) {}
+
+                boolean ok = apiClient.updateTeam(selected.getId(), updates);
+                if (ok) {
+                    CyberAlert.showInfo("Team Updated", "Changes to team '" + selected.getName() + "' saved to Cloud Firestore!");
+                    loadTeams();
+                } else {
+                    CyberAlert.showError("Update Error", "Failed to update team details.");
+                }
+            }
+        });
+    }
+
+    private void showRemovePlayerDialog() {
+        TeamDto selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            CyberAlert.showInfo("Remove Player", "Please select a team from the table first.");
+            return;
+        }
+
+        if (selected.getPlayerNames().isEmpty()) {
+            CyberAlert.showInfo("Roster Empty", "This team has no registered players.");
+            return;
+        }
+
+        if (!ensureTeamAuthorized(selected)) {
+            return;
+        }
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(selected.getPlayerNames().get(0), selected.getPlayerNames());
+        dialog.setTitle("REMOVE PLAYER FROM ROSTER");
+        dialog.setHeaderText("Remove player from team '" + selected.getName() + "':");
+        dialog.setContentText("Select Player:");
 
         CyberAlert.style(dialog);
 
-        dialog.showAndWait().ifPresent(reason -> {
-            boolean ok = apiClient.updateTeamStatus(selected.getId(), status, reason);
-            if (ok) {
-                CyberAlert.showInfo("Status Updated", "Team status updated to " + status + " and synced to Cloud Firestore.");
-                loadTeams();
-            } else {
-                CyberAlert.showError("Update Error", "Failed to update team registration status.");
+        dialog.showAndWait().ifPresent(player -> {
+            boolean confirm = CyberAlert.showConfirm("Confirm Removal",
+                    "Remove player '" + player + "' from " + selected.getName() + "?",
+                    "The player will be removed from the team's official roster in Cloud Firestore.");
+            if (confirm) {
+                boolean ok = apiClient.removePlayerFromTeam(selected.getId(), player);
+                if (ok) {
+                    CyberAlert.showInfo("Player Removed", "Player '" + player + "' removed from roster.");
+                    loadTeams();
+                } else {
+                    CyberAlert.showError("Removal Error", "Failed to remove player.");
+                }
             }
         });
+    }
+
+    private void deleteSelectedTeam() {
+        TeamDto selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            CyberAlert.showInfo("Delete Team", "Please select a team from the table first.");
+            return;
+        }
+
+        if (!ensureTeamAuthorized(selected)) {
+            return;
+        }
+
+        boolean confirm = CyberAlert.showConfirm("Delete Team",
+                "Permanently delete team '" + selected.getName() + "'?",
+                "This will remove the team and its roster records from Cloud Firestore.");
+        if (confirm) {
+            boolean ok = apiClient.deleteTeam(selected.getId());
+            if (ok) {
+                CyberAlert.showInfo("Team Deleted", "Team '" + selected.getName() + "' deleted from Cloud Firestore.");
+                loadTeams();
+            } else {
+                CyberAlert.showError("Delete Error", "Failed to delete team.");
+            }
+        }
     }
 
     private void toggleCheckIn() {
@@ -160,9 +428,5 @@ public class TeamsView extends VBox {
         } else {
             CyberAlert.showError("Update Error", "Failed to update check-in status.");
         }
-    }
-
-    private void showAlert(String msg) {
-        CyberAlert.showInfo("Team Operations", msg);
     }
 }

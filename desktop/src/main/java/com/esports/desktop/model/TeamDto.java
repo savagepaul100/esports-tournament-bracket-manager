@@ -16,6 +16,10 @@ public class TeamDto {
     private boolean checkedIn;
     private Integer seed;
     private String registrationStatus;
+    private String password;
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

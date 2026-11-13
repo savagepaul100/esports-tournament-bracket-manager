@@ -18,6 +18,8 @@ public class MatchDto {
     private String teamBName = "TBD";
     private int scoreA;
     private int scoreB;
+    private int killsA;
+    private int killsB;
     private String winnerId;
     private String winnerName;
     private String status;
@@ -52,6 +54,10 @@ public class MatchDto {
     public void setScoreA(int scoreA) { this.scoreA = scoreA; }
     public int getScoreB() { return scoreB; }
     public void setScoreB(int scoreB) { this.scoreB = scoreB; }
+    public int getKillsA() { return killsA; }
+    public void setKillsA(int killsA) { this.killsA = killsA; }
+    public int getKillsB() { return killsB; }
+    public void setKillsB(int killsB) { this.killsB = killsB; }
     public String getWinnerId() { return winnerId; }
     public void setWinnerId(String winnerId) { this.winnerId = winnerId; }
     public String getWinnerName() { return winnerName; }

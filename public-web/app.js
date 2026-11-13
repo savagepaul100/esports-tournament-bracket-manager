@@ -81,6 +81,14 @@ function setupNavigation() {
         refreshTournamentData(true);
     });
 
+    // Toast popup when downloading desktop application
+    const downloadBtns = document.querySelectorAll('a[download]');
+    downloadBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            showToast('Download will be started soon.');
+        });
+    });
+
     document.getElementById('btn-open-register').addEventListener('click', () => {
         if (!currentTournament) return;
         document.getElementById('reg-tournament-name').value = currentTournament.name;
@@ -94,6 +102,7 @@ function setupNavigation() {
 
     const userBtn = document.getElementById('btn-user-action');
     if (userBtn) {
+        userBtn.style.whiteSpace = 'nowrap';
         userBtn.addEventListener('click', () => {
             const savedUser = localStorage.getItem('nexus_user');
             if (savedUser) {
@@ -413,6 +422,9 @@ function renderMatchCard(match) {
     const winnerA = isComplete && match.winnerId === match.teamAId;
     const winnerB = isComplete && match.winnerId === match.teamBId;
 
+    const killsDisplayA = match.killsA ? ` <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(${match.killsA}k)</span>` : '';
+    const killsDisplayB = match.killsB ? ` <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(${match.killsB}k)</span>` : '';
+
     return `
         <div class="match-card ${isLive ? 'is-live' : ''}">
             <div class="match-card-header">
@@ -423,13 +435,13 @@ function renderMatchCard(match) {
                 <span class="team-name">
                     ${winnerA ? '👑 ' : ''}${match.teamAName || 'TBD'}
                 </span>
-                <span class="team-score">${isComplete || isLive ? match.scoreA : '-'}</span>
+                <span class="team-score">${isComplete || isLive ? match.scoreA + killsDisplayA : '-'}</span>
             </div>
             <div class="match-team ${winnerB ? 'winner' : ''}">
                 <span class="team-name">
                     ${winnerB ? '👑 ' : ''}${match.teamBName || 'TBD'}
                 </span>
-                <span class="team-score">${isComplete || isLive ? match.scoreB : '-'}</span>
+                <span class="team-score">${isComplete || isLive ? match.scoreB + killsDisplayB : '-'}</span>
             </div>
         </div>
     `;
@@ -598,6 +610,7 @@ function setupModals() {
             const captainTag = document.getElementById('reg-captain-name').value;
             const captainEmail = document.getElementById('reg-captain-email').value;
             const playersRaw = document.getElementById('reg-players').value;
+            const password = document.getElementById('reg-password') ? document.getElementById('reg-password').value : '';
 
             const playerNames = playersRaw.split(',').map(s => s.trim()).filter(Boolean);
 
@@ -607,7 +620,8 @@ function setupModals() {
                 tag,
                 captainId: captainTag,
                 captainEmail,
-                playerNames
+                playerNames,
+                password
             };
 
             if (db) {

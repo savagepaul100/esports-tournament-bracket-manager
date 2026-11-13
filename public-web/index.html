@@ -16,7 +16,7 @@
             <div class="brand">
                 <div class="brand-logo">
                     <span class="logo-icon">⚡</span>
-                    <span class="brand-text">NEXUS<span class="accent-cyan">ARENA</span></span>
+                    <span class="brand-text">NEXUS<span class="accent-red">ARENA</span></span>
                 </div>
                 <div class="live-pill">
                     <span class="pulse-dot"></span>
@@ -237,6 +237,10 @@
                 <div class="form-group">
                     <label>Roster Players (Comma separated) *</label>
                     <textarea id="reg-players" class="input-field" rows="3" placeholder="Player1, Player2, Player3, Player4, Player5" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Team Security Password (Required for Modifications) *</label>
+                    <input type="password" id="reg-password" class="input-field" placeholder="Create strong team password (min 4 chars)" required minlength="4">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('modal-register')">Cancel</button>

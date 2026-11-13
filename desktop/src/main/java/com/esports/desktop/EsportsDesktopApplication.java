@@ -73,20 +73,22 @@ public class EsportsDesktopApplication extends Application {
     }
 
     private HBox buildTopBar() {
-        HBox topBar = new HBox(16);
+        HBox topBar = new HBox(14);
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.getStyleClass().add("top-header-bar");
+        topBar.setMinHeight(48);
+        topBar.setMaxHeight(48);
 
         Label appBadge = new Label("ORGANIZER COMMAND SUITE");
-        appBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #94a3b8; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
+        appBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #a1a1aa; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
 
-        lblConnectionStatus = new Label("● CONNECTING TO FIREBASE...");
+        lblConnectionStatus = new Label("● CONNECTING...");
         lblConnectionStatus.getStyleClass().addAll("badge-pill", "badge-amber-fx");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnCloudPortal = new Button("🌐 Live Portal → nexusarena-esports.web.app");
+        Button btnCloudPortal = new Button("🌐 Live Portal (nexusarena-esports.web.app)");
         btnCloudPortal.getStyleClass().add("btn-cyan");
         btnCloudPortal.setOnAction(e -> openUrl("https://nexusarena-esports.web.app"));
 
@@ -103,7 +105,7 @@ public class EsportsDesktopApplication extends Application {
 
     private VBox buildSidebar() {
         VBox sidebar = new VBox(10);
-        sidebar.setPrefWidth(250);
+        sidebar.setPrefWidth(240);
         sidebar.getStyleClass().add("sidebar");
 
         // Brand Logo
@@ -111,7 +113,7 @@ public class EsportsDesktopApplication extends Application {
         brandBox.setAlignment(Pos.CENTER_LEFT);
         brandBox.setStyle("-fx-padding: 0 0 16 6;");
         Label icon = new Label("⚡");
-        icon.setStyle("-fx-font-size: 24px; -fx-text-fill: #00f0ff;");
+        icon.setStyle("-fx-font-size: 22px; -fx-text-fill: #dc2626;");
         Label brand = new Label("NEXUS ");
         brand.getStyleClass().add("brand-label");
         Label brandAccent = new Label("ARENA");
@@ -132,17 +134,17 @@ public class EsportsDesktopApplication extends Application {
 
         // Organizer Profile Box
         VBox profileBox = new VBox(6);
-        profileBox.setStyle("-fx-background-color: #0e1424; -fx-padding: 14; -fx-background-radius: 10; " +
-                "-fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 10;");
+        profileBox.setStyle("-fx-background-color: #18181b; -fx-padding: 12; -fx-background-radius: 2; " +
+                "-fx-border-color: #27272a; -fx-border-radius: 2; -fx-border-width: 1;");
 
         Label userGamerTag = new Label("⚡ " + apiClient.getCurrentUser().getGamerTag());
-        userGamerTag.setStyle("-fx-font-weight: 800; -fx-text-fill: #00ff9d; -fx-font-size: 13px;");
+        userGamerTag.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 13px;");
 
         Label userRole = new Label("ROLE: " + apiClient.getCurrentUser().getRole());
-        userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+        userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #a1a1aa; -fx-font-weight: bold;");
 
-        Label cloudStatus = new Label("🔥 Powered by Cloud Firestore");
-        cloudStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #00f0ff;");
+        Label cloudStatus = new Label("🔥 Cloud Firestore Online");
+        cloudStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #dc2626; -fx-font-weight: bold;");
 
         profileBox.getChildren().addAll(userGamerTag, userRole, cloudStatus);
 

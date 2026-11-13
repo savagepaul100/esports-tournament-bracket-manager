@@ -2,13 +2,12 @@ package com.esports.desktop.client;
 
 import com.esports.desktop.model.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Facade over FirebaseClient.
  * All calls go directly to Cloud Firestore — no local backend required.
+ * Caches authorized team modifications per application session/reload.
  */
 public class ApiClient {
 
@@ -16,8 +15,10 @@ public class ApiClient {
     private UserDto currentUser;
     private String connectionError;
 
+    // Cache of team IDs unlocked by password during this application session
+    private final Set<String> sessionUnlockedTeams = new HashSet<>();
+
     public ApiClient() {
-        // Set up a default organizer user; replaced after login
         this.currentUser = new UserDto();
         this.currentUser.setId("usr-admin");
         this.currentUser.setUsername("admin");
@@ -40,7 +41,6 @@ public class ApiClient {
         return connectionError;
     }
 
-    /** Kept for compatibility — always returns true if Firebase init succeeded */
     public boolean isBackendAlive() {
         return firebase != null;
     }
@@ -81,7 +81,7 @@ public class ApiClient {
         return firebase.deleteTournament(tournamentId, currentUser.getUsername());
     }
 
-    // ==================== TEAMS ====================
+    // ==================== TEAMS & AUTH ====================
 
     public List<TeamDto> getTeams(String tournamentId) {
         if (firebase == null) return Collections.emptyList();
@@ -90,7 +90,47 @@ public class ApiClient {
 
     public boolean registerTeam(TeamDto team) {
         if (firebase == null) return false;
-        return firebase.registerTeam(team, currentUser.getUsername());
+        boolean ok = firebase.registerTeam(team, currentUser.getUsername());
+        if (ok && team.getId() != null) {
+            sessionUnlockedTeams.add(team.getId());
+        }
+        return ok;
+    }
+
+    /**
+     * Checks if team is already unlocked in this session.
+     */
+    public boolean isTeamUnlockedThisSession(String teamId) {
+        return sessionUnlockedTeams.contains(teamId);
+    }
+
+    /**
+     * Verifies team password. If valid, marks the team as unlocked for this session.
+     */
+    public boolean unlockTeamWithPassword(String teamId, String password) {
+        if (firebase == null) return false;
+        boolean valid = firebase.verifyTeamPassword(teamId, password);
+        if (valid) {
+            sessionUnlockedTeams.add(teamId);
+        }
+        return valid;
+    }
+
+    public boolean updateTeam(String teamId, Map<String, Object> updates) {
+        if (firebase == null) return false;
+        return firebase.updateTeam(teamId, updates, currentUser.getUsername());
+    }
+
+    public boolean removePlayerFromTeam(String teamId, String playerName) {
+        if (firebase == null) return false;
+        return firebase.removePlayerFromTeam(teamId, playerName, currentUser.getUsername());
+    }
+
+    public boolean deleteTeam(String teamId) {
+        if (firebase == null) return false;
+        boolean ok = firebase.deleteTeam(teamId, currentUser.getUsername());
+        if (ok) sessionUnlockedTeams.remove(teamId);
+        return ok;
     }
 
     public boolean updateTeamStatus(String teamId, String status, String reason) {
@@ -110,6 +150,11 @@ public class ApiClient {
         return firebase.getMatches(tournamentId);
     }
 
+    public boolean deleteMatch(String matchId) {
+        if (firebase == null) return false;
+        return firebase.deleteMatch(matchId, currentUser.getUsername());
+    }
+
     public List<MatchDto> generateBracket(String tournamentId) {
         if (firebase == null) return Collections.emptyList();
         return firebase.generateBracket(tournamentId, currentUser.getUsername());
@@ -125,9 +170,9 @@ public class ApiClient {
         return firebase.setMatchLive(matchId, scoreA, scoreB, currentUser.getUsername());
     }
 
-    public boolean updateLiveScore(String matchId, int scoreA, int scoreB) {
+    public boolean updateLiveMatch(String matchId, int scoreA, int scoreB, int killsA, int killsB, String status) {
         if (firebase == null) return false;
-        return firebase.updateLiveScore(matchId, scoreA, scoreB, currentUser.getUsername());
+        return firebase.updateLiveMatch(matchId, scoreA, scoreB, killsA, killsB, status, currentUser.getUsername());
     }
 
     public boolean recordMatchScore(String matchId, int scoreA, int scoreB, String reason) {
@@ -135,12 +180,17 @@ public class ApiClient {
         return firebase.recordMatchScore(matchId, scoreA, scoreB, reason, currentUser.getUsername());
     }
 
+    public boolean recordMatchScore(String matchId, int scoreA, int scoreB, int killsA, int killsB, String reason) {
+        if (firebase == null) return false;
+        return firebase.recordMatchScore(matchId, scoreA, scoreB, killsA, killsB, reason, currentUser.getUsername());
+    }
+
     public boolean updateMatchDetails(String matchId, Map<String, Object> updates) {
         if (firebase == null) return false;
         return firebase.updateMatchDetails(matchId, updates, currentUser.getUsername());
     }
 
-    // ==================== DISPUTES ====================
+    // ==================== DISPUTES & CONDUCT ====================
 
     public List<DisputeDto> getDisputes(String tournamentId) {
         if (firebase == null) return Collections.emptyList();
@@ -157,8 +207,6 @@ public class ApiClient {
         return firebase.resolveDispute(disputeId, decision, notes, currentUser.getUsername());
     }
 
-    // ==================== CONDUCT REPORTS ====================
-
     public List<ConductReportDto> getConductReports(String tournamentId) {
         if (firebase == null) return Collections.emptyList();
         return firebase.getConductReports(tournamentId);
@@ -168,8 +216,6 @@ public class ApiClient {
         if (firebase == null) return false;
         return firebase.resolveConductReport(reportId, action, reason, currentUser.getUsername());
     }
-
-    // ==================== AUDIT LOGS ====================
 
     public List<AuditLogDto> getAuditLogs() {
         if (firebase == null) return Collections.emptyList();

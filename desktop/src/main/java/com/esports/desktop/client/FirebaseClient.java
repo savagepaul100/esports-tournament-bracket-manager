@@ -10,12 +10,11 @@ import com.google.firebase.cloud.FirestoreClient;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Direct Cloud Firestore Client for Nexus Arena Desktop App.
- * Runs 100% on Firebase Cloud — no local server, no localhost:8080 required.
+ * 100% Cloud-Native Firestore Client for Nexus Arena Desktop App.
+ * Directly manages Tournaments, Teams, Rosters, Live Kills/Scores, Disputes, and Audit Trail.
  */
 public class FirebaseClient {
 
@@ -80,7 +79,7 @@ public class FirebaseClient {
             data.put("createdBy", actor);
 
             db.collection("tournaments").document(id).set(data).get();
-            addAuditLog(actor, "CREATE_TOURNAMENT", "tournament", id, "Created tournament: " + t.getName());
+            addAuditLog(actor, "CREATE_TOURNAMENT", "tournament", id, "Created tournament: " + t.getName() + " (" + t.getGame() + ")");
 
             t.setId(id);
             t.setStatus((String) data.get("status"));
@@ -113,9 +112,17 @@ public class FirebaseClient {
             List<QueryDocumentSnapshot> teams = db.collection("teams").whereEqualTo("tournamentId", tournamentId).get().get().getDocuments();
             for (QueryDocumentSnapshot tm : teams) tm.getReference().delete();
 
-            // Delete tournament document
+            // Delete disputes
+            List<QueryDocumentSnapshot> disps = db.collection("disputes").whereEqualTo("tournamentId", tournamentId).get().get().getDocuments();
+            for (QueryDocumentSnapshot d : disps) d.getReference().delete();
+
+            // Delete conduct reports
+            List<QueryDocumentSnapshot> rpts = db.collection("conduct_reports").whereEqualTo("tournamentId", tournamentId).get().get().getDocuments();
+            for (QueryDocumentSnapshot r : rpts) r.getReference().delete();
+
+            // Delete tournament
             db.collection("tournaments").document(tournamentId).delete().get();
-            addAuditLog(actor, "DELETE_TOURNAMENT", "tournament", tournamentId, "Deleted tournament and linked matches");
+            addAuditLog(actor, "DELETE_TOURNAMENT", "tournament", tournamentId, "Deleted tournament and all linked records");
             return true;
         } catch (Exception e) {
             System.err.println("Firestore deleteTournament error: " + e.getMessage());
@@ -123,7 +130,7 @@ public class FirebaseClient {
         }
     }
 
-    // ==================== TEAMS ====================
+    // ==================== TEAMS & ROSTERS ====================
 
     public List<TeamDto> getTeams(String tournamentId) {
         try {
@@ -143,20 +150,81 @@ public class FirebaseClient {
             data.put("id", id);
             data.put("tournamentId", team.getTournamentId());
             data.put("name", team.getName());
-            data.put("tag", team.getTag());
+            data.put("tag", team.getTag() != null ? team.getTag() : "");
+            data.put("password", team.getPassword() != null && !team.getPassword().isBlank() ? team.getPassword() : "TeamPass@2026");
             data.put("captainId", team.getCaptainId() != null ? team.getCaptainId() : actor);
             data.put("captainEmail", team.getCaptainEmail() != null ? team.getCaptainEmail() : actor + "@nexusarena.gg");
             data.put("playerNames", team.getPlayerNames() != null ? team.getPlayerNames() : Collections.emptyList());
             data.put("checkedIn", team.isCheckedIn());
-            data.put("seed", team.getSeed());
+            data.put("seed", team.getSeed() != null ? team.getSeed() : 1);
             data.put("registrationStatus", team.getRegistrationStatus() != null ? team.getRegistrationStatus() : "APPROVED");
             data.put("registeredAt", Instant.now().toString());
 
             db.collection("teams").document(id).set(data).get();
-            addAuditLog(actor, "REGISTER_TEAM", "team", id, "Registered team " + team.getName());
+            addAuditLog(actor, "REGISTER_TEAM", "team", id, "Registered team " + team.getName() + " with password protection");
             return true;
         } catch (Exception e) {
             System.err.println("Firestore registerTeam error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean verifyTeamPassword(String teamId, String password) {
+        try {
+            DocumentSnapshot doc = db.collection("teams").document(teamId).get().get();
+            if (!doc.exists()) return false;
+            String stored = str(doc, "password");
+            if (stored.isBlank()) return true; // no password required if legacy/unset
+            return stored.equals(password);
+        } catch (Exception e) {
+            System.err.println("Firestore verifyTeamPassword error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateTeam(String teamId, Map<String, Object> updates, String actor) {
+        try {
+            updates.put("updatedAt", Instant.now().toString());
+            db.collection("teams").document(teamId).update(updates).get();
+            addAuditLog(actor, "UPDATE_TEAM", "team", teamId, "Updated team details: " + updates.keySet());
+            return true;
+        } catch (Exception e) {
+            System.err.println("Firestore updateTeam error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean removePlayerFromTeam(String teamId, String playerName, String actor) {
+        try {
+            DocumentSnapshot doc = db.collection("teams").document(teamId).get().get();
+            if (!doc.exists()) return false;
+            Object obj = doc.get("playerNames");
+            if (obj instanceof List) {
+                List<String> list = new ArrayList<>();
+                for (Object item : (List<?>) obj) {
+                    String p = String.valueOf(item);
+                    if (!p.equalsIgnoreCase(playerName.trim())) {
+                        list.add(p);
+                    }
+                }
+                db.collection("teams").document(teamId).update("playerNames", list, "updatedAt", Instant.now().toString()).get();
+                addAuditLog(actor, "REMOVE_PLAYER", "team", teamId, "Removed player " + playerName + " from roster");
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.err.println("Firestore removePlayerFromTeam error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean deleteTeam(String teamId, String actor) {
+        try {
+            db.collection("teams").document(teamId).delete().get();
+            addAuditLog(actor, "DELETE_TEAM", "team", teamId, "Deleted team from Cloud Firestore");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Firestore deleteTeam error: " + e.getMessage());
             return false;
         }
     }
@@ -200,6 +268,17 @@ public class FirebaseClient {
         }
     }
 
+    public boolean deleteMatch(String matchId, String actor) {
+        try {
+            db.collection("matches").document(matchId).delete().get();
+            addAuditLog(actor, "DELETE_MATCH", "match", matchId, "Deleted match record");
+            return true;
+        } catch (Exception e) {
+            System.err.println("Firestore deleteMatch error: " + e.getMessage());
+            return false;
+        }
+    }
+
     public List<MatchDto> generateBracket(String tournamentId, String actor) {
         try {
             List<TeamDto> teams = getTeams(tournamentId);
@@ -212,10 +291,8 @@ public class FirebaseClient {
                 return getMatches(tournamentId);
             }
 
-            // Shuffle teams for seeding
             Collections.shuffle(approved);
 
-            // Calculate bracket size (next power of 2: 2, 4, 8, 16...)
             int numTeams = approved.size();
             int bracketSize = 1;
             int totalRounds = 0;
@@ -237,7 +314,7 @@ public class FirebaseClient {
 
             List<MatchDto> created = new ArrayList<>();
 
-            // Generate Round 1 matches with initial approved teams
+            // Round 1 matches
             int r1MatchCount = bracketSize / 2;
             for (int i = 0; i < r1MatchCount; i++) {
                 TeamDto teamA = (i * 2 < approved.size()) ? approved.get(i * 2) : null;
@@ -259,6 +336,8 @@ public class FirebaseClient {
                 data.put("teamBName", teamB != null ? teamB.getName() : "TBD");
                 data.put("scoreA", 0);
                 data.put("scoreB", 0);
+                data.put("killsA", 0);
+                data.put("killsB", 0);
                 data.put("status", "UPCOMING");
                 data.put("scheduledTime", "Match Day 1 • 18:00 IST");
                 data.put("roomId", "NX-LOBBY-" + (100 + i + 1));
@@ -270,7 +349,7 @@ public class FirebaseClient {
                 created.add(docToMatch(data));
             }
 
-            // Generate subsequent rounds (Rounds 2..totalRounds) with TBD placeholders
+            // Subsequent rounds (TBD placeholders)
             int currentRoundTeams = bracketSize / 2;
             int r = 2;
             while (currentRoundTeams >= 2) {
@@ -293,6 +372,8 @@ public class FirebaseClient {
                     data.put("teamBName", "TBD");
                     data.put("scoreA", 0);
                     data.put("scoreB", 0);
+                    data.put("killsA", 0);
+                    data.put("killsB", 0);
                     data.put("status", "UPCOMING");
                     data.put("scheduledTime", "Match Day " + r + " • 20:00 IST");
                     data.put("roomId", "NX-LOBBY-" + (200 + m));
@@ -307,7 +388,6 @@ public class FirebaseClient {
                 r++;
             }
 
-            // Advance tournament status to IN_PROGRESS
             updateTournamentStatus(tournamentId, "IN_PROGRESS", actor);
             addAuditLog(actor, "GENERATE_BRACKET", "tournament", tournamentId,
                     "Generated single-elimination bracket with " + created.size() + " matches across " + (r - 1) + " rounds");
@@ -350,41 +430,34 @@ public class FirebaseClient {
     }
 
     public boolean setMatchLive(String matchId, int scoreA, int scoreB, String actor) {
-        try {
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("status", "LIVE");
-            updates.put("scoreA", scoreA);
-            updates.put("scoreB", scoreB);
-            updates.put("startedAt", Instant.now().toString());
-            updates.put("updatedAt", Instant.now().toString());
-
-            db.collection("matches").document(matchId).update(updates).get();
-            addAuditLog(actor, "START_MATCH_LIVE", "match", matchId, "Match LIVE now with score " + scoreA + "-" + scoreB);
-            return true;
-        } catch (Exception e) {
-            System.err.println("Firestore setMatchLive error: " + e.getMessage());
-            return false;
-        }
+        return updateLiveMatch(matchId, scoreA, scoreB, scoreA * 4 + 2, scoreB * 4 + 1, "LIVE", actor);
     }
 
-    public boolean updateLiveScore(String matchId, int scoreA, int scoreB, String actor) {
+    public boolean updateLiveMatch(String matchId, int scoreA, int scoreB, int killsA, int killsB, String status, String actor) {
         try {
             Map<String, Object> updates = new HashMap<>();
             updates.put("scoreA", scoreA);
             updates.put("scoreB", scoreB);
-            updates.put("status", "LIVE");
+            updates.put("killsA", killsA);
+            updates.put("killsB", killsB);
+            updates.put("status", status != null ? status : "LIVE");
             updates.put("updatedAt", Instant.now().toString());
 
             db.collection("matches").document(matchId).update(updates).get();
-            addAuditLog(actor, "UPDATE_LIVE_SCORE", "match", matchId, "Live score updated: " + scoreA + "-" + scoreB);
+            addAuditLog(actor, "LIVE_SCORE_UPDATE", "match", matchId,
+                    "Live Score: " + scoreA + "-" + scoreB + " | Kills: " + killsA + "-" + killsB + " (" + status + ")");
             return true;
         } catch (Exception e) {
-            System.err.println("Firestore updateLiveScore error: " + e.getMessage());
+            System.err.println("Firestore updateLiveMatch error: " + e.getMessage());
             return false;
         }
     }
 
     public boolean recordMatchScore(String matchId, int scoreA, int scoreB, String reason, String actor) {
+        return recordMatchScore(matchId, scoreA, scoreB, scoreA * 4 + 5, scoreB * 4 + 3, reason, actor);
+    }
+
+    public boolean recordMatchScore(String matchId, int scoreA, int scoreB, int killsA, int killsB, String reason, String actor) {
         try {
             DocumentSnapshot doc = db.collection("matches").document(matchId).get().get();
             if (!doc.exists()) {
@@ -413,6 +486,8 @@ public class FirebaseClient {
             Map<String, Object> updates = new HashMap<>();
             updates.put("scoreA", scoreA);
             updates.put("scoreB", scoreB);
+            updates.put("killsA", killsA);
+            updates.put("killsB", killsB);
             updates.put("status", "COMPLETE");
             updates.put("winnerId", winnerId);
             updates.put("winnerName", winnerName);
@@ -422,7 +497,8 @@ public class FirebaseClient {
 
             db.collection("matches").document(matchId).update(updates).get();
             addAuditLog(actor, "RECORD_SCORE", "match", matchId,
-                    "Result: " + teamAName + " (" + scoreA + ") vs (" + scoreB + ") " + teamBName + " → Winner: " + winnerName);
+                    "Result: " + teamAName + " (" + scoreA + ") vs (" + scoreB + ") " + teamBName +
+                    " [Kills: " + killsA + "-" + killsB + "] → Winner: " + winnerName);
 
             // ==================== ADVANCE WINNER TO NEXT ROUND ====================
             int nextRound = round + 1;
@@ -612,17 +688,9 @@ public class FirebaseClient {
 
     // ==================== PROTOTYPE DATA SEEDER ====================
 
-    /**
-     * Completely populates Cloud Firestore with a rich, realistic esports championship:
-     * - Live ongoing match with in-progress scores (11-12)
-     * - Completed Quarter-Finals & Semi-Finals with full bracket progression
-     * - Grand Final upcoming
-     * - Active disputes & moderation cases
-     * - Audited history
-     */
     public boolean seedPrototypeData(String actor) {
         try {
-            System.out.println("⚡ Seeding rich live prototype data into Cloud Firestore...");
+            System.out.println("⚡ Seeding multi-game esports championship prototype data into Cloud Firestore...");
 
             // 1. TOURNAMENT 1: VALORANT MASTERS (IN_PROGRESS)
             Map<String, Object> t1 = new HashMap<>();
@@ -635,56 +703,73 @@ public class FirebaseClient {
             t1.put("teamSize", 5);
             t1.put("maxParticipants", 8);
             t1.put("published", true);
-            t1.put("rules", "Standard VCT competitive ruleset. Anti-cheat client mandatory. Overtime win by 2.");
+            t1.put("rules", "Standard VCT competitive ruleset. Overtime win by 2.");
             t1.put("tournamentStartDate", "2026-11-14T12:00:00Z");
             t1.put("createdAt", Instant.now().toString());
             t1.put("createdBy", actor);
             db.collection("tournaments").document("trn-val-masters").set(t1).get();
 
-            // 2. TOURNAMENT 2: APEX BATTLE ROYALE (IN_PROGRESS)
+            // 2. TOURNAMENT 2: COUNTER-STRIKE 2 (CS2) IEM COLOGNE (IN_PROGRESS)
             Map<String, Object> t2 = new HashMap<>();
-            t2.put("id", "trn-br-pro");
-            t2.put("name", "APEX PREDATORS: BATTLE ROYALE SHOWDOWN");
-            t2.put("description", "ALGS Pro Series Battle Royale. Point-based lobby placement scoring.");
-            t2.put("game", "APEX LEGENDS");
-            t2.put("mode", "BATTLE_ROYALE");
+            t2.put("id", "trn-cs2-cologne");
+            t2.put("name", "CS2 IEM COLOGNE: CATHEDRAL OF COUNTER-STRIKE");
+            t2.put("description", "Premier Counter-Strike 2 Major Championship. MR12 Competitive Ruleset.");
+            t2.put("game", "COUNTER-STRIKE 2");
+            t2.put("mode", "SINGLE_ELIMINATION_TDM");
             t2.put("status", "IN_PROGRESS");
-            t2.put("teamSize", 3);
+            t2.put("teamSize", 5);
             t2.put("maxParticipants", 8);
             t2.put("published", true);
-            t2.put("rules", "Placement points (1st=12, 2nd=9, 3rd=7...) + 1 point per kill.");
-            t2.put("tournamentStartDate", "2026-11-14T14:00:00Z");
+            t2.put("rules", "Valve competitive settings. 128-tick equivalent subtick servers. Overtime MR3.");
+            t2.put("tournamentStartDate", "2026-11-14T15:00:00Z");
             t2.put("createdAt", Instant.now().toString());
             t2.put("createdBy", actor);
-            db.collection("tournaments").document("trn-br-pro").set(t2).get();
+            db.collection("tournaments").document("trn-cs2-cologne").set(t2).get();
 
-            // 3. TOURNAMENT 3: BGMI CLASH (REGISTRATION_OPEN)
+            // 3. TOURNAMENT 3: DOTA 2 THE INTERNATIONAL (REGISTRATION_OPEN)
             Map<String, Object> t3 = new HashMap<>();
-            t3.put("id", "trn-clash-open");
-            t3.put("name", "BGMI ALL-STARS COMMUNITY CUP");
-            t3.put("description", "Open community championship for aspiring professional squads.");
-            t3.put("game", "BGMI");
-            t3.put("mode", "SINGLE_ELIMINATION_CLASH");
+            t3.put("id", "trn-dota2-ti");
+            t3.put("name", "THE INTERNATIONAL: CHALICE OF AEGIS");
+            t3.put("description", "Annual world championship tournament. Captain's Mode 5v5.");
+            t3.put("game", "DOTA 2");
+            t3.put("mode", "SINGLE_ELIMINATION_TDM");
             t3.put("status", "REGISTRATION_OPEN");
-            t3.put("teamSize", 4);
+            t3.put("teamSize", 5);
             t3.put("maxParticipants", 8);
             t3.put("published", true);
-            t3.put("rules", "Fair-play screen recording required. All devices allowed.");
-            t3.put("tournamentStartDate", "2026-11-15T18:00:00Z");
+            t3.put("rules", "Captain's Mode. Standard pick/ban phase.");
+            t3.put("tournamentStartDate", "2026-11-16T18:00:00Z");
             t3.put("createdAt", Instant.now().toString());
             t3.put("createdBy", actor);
-            db.collection("tournaments").document("trn-clash-open").set(t3).get();
+            db.collection("tournaments").document("trn-dota2-ti").set(t3).get();
 
-            // 4. TEAMS FOR VALORANT MASTERS (8 Pro Teams)
+            // 4. TOURNAMENT 4: APEX LEGENDS BATTLE ROYALE (IN_PROGRESS)
+            Map<String, Object> t4 = new HashMap<>();
+            t4.put("id", "trn-br-pro");
+            t4.put("name", "APEX PREDATORS: PRO SERIES SHOWDOWN");
+            t4.put("description", "ALGS Pro Series Battle Royale. Point-based placement + kill multipliers.");
+            t4.put("game", "APEX LEGENDS");
+            t4.put("mode", "BATTLE_ROYALE");
+            t4.put("status", "IN_PROGRESS");
+            t4.put("teamSize", 3);
+            t4.put("maxParticipants", 8);
+            t4.put("published", true);
+            t4.put("rules", "Placement points (1st=12, 2nd=9, 3rd=7...) + 1 point per kill.");
+            t4.put("tournamentStartDate", "2026-11-14T14:00:00Z");
+            t4.put("createdAt", Instant.now().toString());
+            t4.put("createdBy", actor);
+            db.collection("tournaments").document("trn-br-pro").set(t4).get();
+
+            // 5. TEAMS FOR VALORANT MASTERS (With Passwords!)
             String[][] teamData = {
-                    {"tm-1", "Sentinels", "SEN", "tenz@sentinels.gg", "TenZ, zekken, Sacy, johnqt, Zellsis", "1"},
-                    {"tm-2", "Team Liquid", "TL", "jamppi@liquid.com", "Jamppi, nAts, keiko, Enzo, Mistic", "8"},
-                    {"tm-3", "Fnatic", "FNC", "boaster@fnatic.com", "Boaster, Derke, Alfajer, Chronicle, hiro", "4"},
-                    {"tm-4", "DRX Esports", "DRX", "stax@drx.gg", "stax, BuZz, MaKo, Foxy9, Flashback", "5"},
-                    {"tm-5", "Paper Rex", "PRX", "f0rsaken@pprx.team", "f0rsakeN, Jinggg, d4v41, mindfreak, something", "2"},
-                    {"tm-6", "LOUD Esports", "LOUD", "saadhak@loud.gg", "Saadhak, Less, tuyz, cauanzin, qck", "7"},
-                    {"tm-7", "Evil Geniuses", "EG", "jawgemo@eg.gg", "Jawgemo, Potter, Derrek, NaturE, supamen", "3"},
-                    {"tm-8", "EDward Gaming", "EDG", "zmjjkk@edg.cn", "ZmjjKK, nobody, CHICHOO, Smoggy, Haodong", "6"}
+                    {"tm-1", "Sentinels", "SEN", "tenz@sentinels.gg", "TenZ, zekken, Sacy, johnqt, Zellsis", "1", "Sentinels@2026"},
+                    {"tm-2", "Team Liquid", "TL", "jamppi@liquid.com", "Jamppi, nAts, keiko, Enzo, Mistic", "8", "Liquid@2026"},
+                    {"tm-3", "Fnatic", "FNC", "boaster@fnatic.com", "Boaster, Derke, Alfajer, Chronicle, hiro", "4", "Fnatic@2026"},
+                    {"tm-4", "DRX Esports", "DRX", "stax@drx.gg", "stax, BuZz, MaKo, Foxy9, Flashback", "5", "DRXEsports@2026"},
+                    {"tm-5", "Paper Rex", "PRX", "f0rsaken@pprx.team", "f0rsakeN, Jinggg, d4v41, mindfreak, something", "2", "PaperRex@2026"},
+                    {"tm-6", "LOUD Esports", "LOUD", "saadhak@loud.gg", "Saadhak, Less, tuyz, cauanzin, qck", "7", "LOUDEsports@2026"},
+                    {"tm-7", "Evil Geniuses", "EG", "jawgemo@eg.gg", "Jawgemo, Potter, Derrek, NaturE, supamen", "3", "EvilGeniuses@2026"},
+                    {"tm-8", "EDward Gaming", "EDG", "zmjjkk@edg.cn", "ZmjjKK, nobody, CHICHOO, Smoggy, Haodong", "6", "EDwardGaming@2026"}
             };
 
             for (String[] t : teamData) {
@@ -698,46 +783,83 @@ public class FirebaseClient {
                 tm.put("playerNames", Arrays.asList(t[4].split(", ")));
                 tm.put("checkedIn", true);
                 tm.put("seed", Integer.parseInt(t[5]));
+                tm.put("password", t[6]);
                 tm.put("registrationStatus", "APPROVED");
                 tm.put("registeredAt", Instant.now().toString());
                 db.collection("teams").document(t[0]).set(tm).get();
             }
 
-            // 5. MATCHES FOR VALORANT MASTERS
-            // Round 1: Quarter-Finals (ALL COMPLETE)
+            // 6. TEAMS FOR CS2 IEM COLOGNE
+            String[][] cs2Teams = {
+                    {"tm-cs1", "Natus Vincere", "NAVI", "aleksib@navi.gg", "s1mple, b1t, jL, iM, Aleksib", "1", "NaviPass@2026"},
+                    {"tm-cs2", "FaZe Clan", "FAZE", "karrigan@faze.com", "karrigan, rain, broky, frozen, ropz", "2", "FaZePass@2026"},
+                    {"tm-cs3", "Team Vitality", "VIT", "apex@vitality.gg", "ZywOo, apEX, Spinx, flameZ, mezii", "3", "VitalityPass@2026"},
+                    {"tm-cs4", "G2 Esports", "G2", "snax@g2.gg", "NiKo, m0NESY, huNter-, malbsMd, Snax", "4", "G2Esports@2026"}
+            };
+            for (String[] t : cs2Teams) {
+                Map<String, Object> tm = new HashMap<>();
+                tm.put("id", t[0]);
+                tm.put("tournamentId", "trn-cs2-cologne");
+                tm.put("name", t[1]);
+                tm.put("tag", t[2]);
+                tm.put("captainId", t[1].toLowerCase().replace(" ", ""));
+                tm.put("captainEmail", t[3]);
+                tm.put("playerNames", Arrays.asList(t[4].split(", ")));
+                tm.put("checkedIn", true);
+                tm.put("seed", Integer.parseInt(t[5]));
+                tm.put("password", t[6]);
+                tm.put("registrationStatus", "APPROVED");
+                tm.put("registeredAt", Instant.now().toString());
+                db.collection("teams").document(t[0]).set(tm).get();
+            }
+
+            // 7. MATCHES FOR VALORANT MASTERS (With Authentic Kills & Scores)
+            // Quarter-Finals (ALL COMPLETE)
             seedMatch("match-val-qf1", "trn-val-masters", 1, 1, "Quarter-Finals",
-                    "tm-1", "Sentinels", 13, "tm-2", "Team Liquid", 9,
+                    "tm-1", "Sentinels", 13, 56, "tm-2", "Team Liquid", 9, 41,
                     "COMPLETE", "tm-1", "Sentinels", "Sunset", "VCT-QF-101", "vct2026", "2026-11-14T10:00:00Z");
 
             seedMatch("match-val-qf2", "trn-val-masters", 1, 2, "Quarter-Finals",
-                    "tm-3", "Fnatic", 13, "tm-4", "DRX Esports", 7,
+                    "tm-3", "Fnatic", 13, 58, "tm-4", "DRX Esports", 7, 34,
                     "COMPLETE", "tm-3", "Fnatic", "Lotus", "VCT-QF-102", "vct2026", "2026-11-14T11:00:00Z");
 
             seedMatch("match-val-qf3", "trn-val-masters", 1, 3, "Quarter-Finals",
-                    "tm-5", "Paper Rex", 13, "tm-6", "LOUD Esports", 11,
+                    "tm-5", "Paper Rex", 13, 62, "tm-6", "LOUD Esports", 11, 54,
                     "COMPLETE", "tm-5", "Paper Rex", "Bind", "VCT-QF-103", "vct2026", "2026-11-14T12:00:00Z");
 
             seedMatch("match-val-qf4", "trn-val-masters", 1, 4, "Quarter-Finals",
-                    "tm-7", "Evil Geniuses", 13, "tm-8", "EDward Gaming", 10,
+                    "tm-7", "Evil Geniuses", 13, 57, "tm-8", "EDward Gaming", 10, 46,
                     "COMPLETE", "tm-7", "Evil Geniuses", "Haven", "VCT-QF-104", "vct2026", "2026-11-14T13:00:00Z");
 
-            // Round 2: Semi-Finals
-            // SF1: COMPLETE (Sentinels won 13-11 against Fnatic)
+            // Semi-Final 1 (COMPLETE)
             seedMatch("match-val-sf1", "trn-val-masters", 2, 1, "Semi-Finals",
-                    "tm-1", "Sentinels", 13, "tm-3", "Fnatic", 11,
+                    "tm-1", "Sentinels", 13, 64, "tm-3", "Fnatic", 11, 59,
                     "COMPLETE", "tm-1", "Sentinels", "Ascent", "VCT-SF-201", "vct2026", "2026-11-14T15:00:00Z");
 
-            // SF2: 🔥 LIVE RIGHT NOW! (PRX 11 vs EG 12 - Tense Match!)
+            // Semi-Final 2 (🔥 LIVE RIGHT NOW! High tension 11-12 score with 48 vs 51 kills!)
             seedMatch("match-val-sf2", "trn-val-masters", 2, 2, "Semi-Finals",
-                    "tm-5", "Paper Rex", 11, "tm-7", "Evil Geniuses", 12,
+                    "tm-5", "Paper Rex", 11, 48, "tm-7", "Evil Geniuses", 12, 51,
                     "LIVE", null, null, "Lotus", "VCT-LIVE-202", "livepass99", "2026-11-14T17:00:00Z");
 
-            // Round 3: Grand Final (UPCOMING: Sentinels vs TBD)
+            // Grand Final (UPCOMING)
             seedMatch("match-val-final", "trn-val-masters", 3, 1, "Grand Final",
-                    "tm-1", "Sentinels", 0, "tbd", "TBD (Winner SF2)", 0,
+                    "tm-1", "Sentinels", 0, 0, "tbd", "TBD (Winner SF2)", 0, 0,
                     "UPCOMING", null, null, "Sunset", "VCT-FINALS-301", "apex2026", "Tonight 21:00 IST");
 
-            // 6. DISPUTES
+            // 8. MATCHES FOR CS2 (NaVi vs FaZe LIVE!)
+            seedMatch("match-cs2-sf1", "trn-cs2-cologne", 1, 1, "Semi-Finals",
+                    "tm-cs1", "Natus Vincere", 11, 44, "tm-cs2", "FaZe Clan", 10, 42,
+                    "LIVE", null, null, "Mirage", "CS2-IEM-01", "cs2major", "2026-11-14T18:30:00Z");
+
+            seedMatch("match-cs2-sf2", "trn-cs2-cologne", 1, 2, "Semi-Finals",
+                    "tm-cs3", "Team Vitality", 13, 52, "tm-cs4", "G2 Esports", 9, 39,
+                    "COMPLETE", "tm-cs3", "Team Vitality", "Inferno", "CS2-IEM-02", "cs2major", "2026-11-14T16:00:00Z");
+
+            seedMatch("match-cs2-final", "trn-cs2-cologne", 2, 1, "Grand Final",
+                    "tbd", "TBD (Winner SF1)", 0, 0, "tm-cs3", "Team Vitality", 0, 0,
+                    "UPCOMING", null, null, "Nuke", "CS2-IEM-FINAL", "cs2major", "Tomorrow 20:00 IST");
+
+            // 9. DISPUTES
             Map<String, Object> disp1 = new HashMap<>();
             disp1.put("id", "disp-001");
             disp1.put("tournamentId", "trn-val-masters");
@@ -766,7 +888,7 @@ public class FirebaseClient {
             disp2.put("createdAt", Instant.now().toString());
             db.collection("disputes").document("disp-002").set(disp2).get();
 
-            // 7. CONDUCT REPORTS
+            // 10. CONDUCT REPORTS
             Map<String, Object> cr1 = new HashMap<>();
             cr1.put("id", "rpt-001");
             cr1.put("tournamentId", "trn-val-masters");
@@ -784,16 +906,16 @@ public class FirebaseClient {
             cr1.put("createdAt", Instant.now().toString());
             db.collection("conduct_reports").document("rpt-001").set(cr1).get();
 
-            // 8. DEMO USERS
+            // 11. DEMO USERS
             seedUser("usr-admin", "admin", "admin123", "ORGANIZER", "ApexAdmin#0001");
             seedUser("usr-tenz", "tenz", "tenz123", "PARTICIPANT", "SEN_TenZ#1337");
             seedUser("usr-boaster", "boaster", "boaster123", "PARTICIPANT", "FNC_Boaster#0001");
 
-            // 9. AUDIT LOGS
+            // 12. AUDIT LOGS
             addAuditLog(actor, "SEED_PROTOTYPE_DATA", "system", "all",
-                    "Populated Cloud Firestore with complete VCT Masters championship, live match, and integrity records.");
+                    "Populated Cloud Firestore with complete VCT Masters and CS2 Cologne Major championships, live kills, and ongoing matches.");
 
-            System.out.println("✓ Rich live prototype data successfully populated into Cloud Firestore!");
+            System.out.println("✓ Complete multi-game esports championship data populated into Cloud Firestore!");
             return true;
         } catch (Exception e) {
             System.err.println("Firestore seedPrototypeData error: " + e.getMessage());
@@ -803,8 +925,8 @@ public class FirebaseClient {
     }
 
     private void seedMatch(String id, String tournamentId, int round, int matchNum, String roundName,
-                           String teamAId, String teamAName, int scoreA,
-                           String teamBId, String teamBName, int scoreB,
+                           String teamAId, String teamAName, int scoreA, int killsA,
+                           String teamBId, String teamBName, int scoreB, int killsB,
                            String status, String winnerId, String winnerName,
                            String map, String roomId, String password, String time) throws Exception {
         Map<String, Object> m = new HashMap<>();
@@ -820,6 +942,8 @@ public class FirebaseClient {
         m.put("teamBName", teamBName);
         m.put("scoreA", scoreA);
         m.put("scoreB", scoreB);
+        m.put("killsA", killsA);
+        m.put("killsB", killsB);
         m.put("status", status);
         m.put("winnerId", winnerId);
         m.put("winnerName", winnerName);
@@ -869,6 +993,7 @@ public class FirebaseClient {
         t.setTournamentId(str(d, "tournamentId"));
         t.setName(str(d, "name"));
         t.setTag(str(d, "tag"));
+        t.setPassword(str(d, "password"));
         t.setCaptainId(str(d, "captainId"));
         t.setCaptainEmail(str(d, "captainEmail"));
         t.setRegistrationStatus(str(d, "registrationStatus"));
@@ -903,6 +1028,10 @@ public class FirebaseClient {
         m.setScoreA(sa != null ? sa.intValue() : 0);
         Long sb = d.getLong("scoreB");
         m.setScoreB(sb != null ? sb.intValue() : 0);
+        Long ka = d.getLong("killsA");
+        m.setKillsA(ka != null ? ka.intValue() : 0);
+        Long kb = d.getLong("killsB");
+        m.setKillsB(kb != null ? kb.intValue() : 0);
         m.setWinnerId(str(d, "winnerId"));
         m.setWinnerName(str(d, "winnerName"));
         m.setStatus(str(d, "status"));
@@ -933,6 +1062,10 @@ public class FirebaseClient {
         m.setScoreA(sa instanceof Number ? ((Number) sa).intValue() : 0);
         Object sb = d.get("scoreB");
         m.setScoreB(sb instanceof Number ? ((Number) sb).intValue() : 0);
+        Object ka = d.get("killsA");
+        m.setKillsA(ka instanceof Number ? ((Number) ka).intValue() : 0);
+        Object kb = d.get("killsB");
+        m.setKillsB(kb instanceof Number ? ((Number) kb).intValue() : 0);
         m.setWinnerId((String) d.get("winnerId"));
         m.setWinnerName((String) d.get("winnerName"));
         m.setStatus((String) d.get("status"));

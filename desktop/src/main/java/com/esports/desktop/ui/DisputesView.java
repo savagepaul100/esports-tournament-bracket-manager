@@ -63,7 +63,7 @@ public class DisputesView extends VBox {
 
         // Dispute Table
         Label lblDisp = new Label("MATCH RESULT DISPUTES");
-        lblDisp.setStyle("-fx-font-weight: bold; -fx-text-fill: #fbbf24; -fx-font-size: 14px;");
+        lblDisp.setStyle("-fx-font-weight: bold; -fx-text-fill: #ea580c; -fx-font-size: 14px;");
 
         disputeTable = new TableView<>();
         setupDisputeTable();
@@ -71,7 +71,7 @@ public class DisputesView extends VBox {
 
         // Conduct Table
         Label lblCond = new Label("CONDUCT & FAIR-PLAY INCIDENT REPORTS");
-        lblCond.setStyle("-fx-font-weight: bold; -fx-text-fill: #ff3366; -fx-font-size: 14px;");
+        lblCond.setStyle("-fx-font-weight: bold; -fx-text-fill: #dc2626; -fx-font-size: 14px;");
 
         conductTable = new TableView<>();
         setupConductTable();

@@ -55,14 +55,14 @@ public class DashboardView extends VBox {
             pendingReports += apiClient.getConductReports(t.getId()).stream().filter(r -> "SUBMITTED".equals(r.getStatus())).count();
         }
 
-        // Stats Row
-        HBox statsGrid = new HBox(16);
+        // Stats Row (Red, Deep Orange, Gray, White Palette)
+        HBox statsGrid = new HBox(14);
         statsGrid.getChildren().addAll(
-                createStatCard("TOTAL TOURNAMENTS", String.valueOf(totalTournaments), "#8b5cf6"),
-                createStatCard("ACTIVE MATCHES", String.valueOf(activeMatches), "#00f0ff"),
-                createStatCard("REGISTERED TEAMS", String.valueOf(totalTeams), "#00ff9d"),
-                createStatCard("PENDING DISPUTES", String.valueOf(pendingDisputes), "#fbbf24"),
-                createStatCard("CONDUCT REPORTS", String.valueOf(pendingReports), "#ff3366")
+                createStatCard("TOTAL TOURNAMENTS", String.valueOf(totalTournaments), "#ffffff"),
+                createStatCard("ACTIVE MATCHES", String.valueOf(activeMatches), "#dc2626"),
+                createStatCard("REGISTERED TEAMS", String.valueOf(totalTeams), "#ea580c"),
+                createStatCard("PENDING DISPUTES", String.valueOf(pendingDisputes), "#f97316"),
+                createStatCard("CONDUCT REPORTS", String.valueOf(pendingReports), "#ef4444")
         );
 
         // Quick Actions & Live Link
@@ -115,7 +115,7 @@ public class DashboardView extends VBox {
         VBox activityCard = new VBox(12);
         activityCard.getStyleClass().add("card-panel");
         Label activityTitle = new Label("RECENT AUDIT & ACTIVITY FEED");
-        activityTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #00f0ff;");
+        activityTitle.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #ea580c;");
 
         VBox logsContainer = new VBox(8);
         List<AuditLogDto> auditLogs = apiClient.getAuditLogs();
