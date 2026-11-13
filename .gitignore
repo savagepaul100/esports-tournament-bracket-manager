@@ -19,6 +19,7 @@ buildNumber.properties
 apache-maven.zip
 staging-dist/
 *.zip
+*.jar
 
 # IDE specific files
 .idea/

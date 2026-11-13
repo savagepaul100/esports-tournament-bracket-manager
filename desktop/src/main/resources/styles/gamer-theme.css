@@ -64,10 +64,68 @@
 
 /* Top App Header Bar - SINGLE LINE */
 .top-header-bar {
-    -fx-background-color: #121215;
+    -fx-background-color: #0c0c0e;
     -fx-border-color: transparent transparent #27272a transparent;
     -fx-border-width: 0 0 1 0;
-    -fx-padding: 10 24;
+    -fx-padding: 8 20;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.top-nav-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #a1a1aa;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 6 12;
+    -fx-background-radius: 2;
+    -fx-border-radius: 2;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-cursor: hand;
+}
+
+.top-nav-btn:hover {
+    -fx-background-color: #27272a;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #3f3f46;
+}
+
+.top-nav-btn.active {
+    -fx-background-color: #18181b;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #ea580c;
+    -fx-border-width: 1;
+    -fx-font-weight: bold;
+}
+
+/* Hero Tournament Banner Bar - Identical to Website */
+.hero-banner-bar {
+    -fx-background-color: #121215;
+    -fx-border-color: transparent transparent #27272a #dc2626;
+    -fx-border-width: 0 0 1 4;
+    -fx-padding: 10 20;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.hero-stat-pill {
+    -fx-background-color: #18181b;
+    -fx-border-color: #27272a;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+    -fx-border-width: 1;
+    -fx-padding: 5 12;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.hero-stat-pill:hover {
+    -fx-border-color: #ea580c;
+}
+
+.footer-bar {
+    -fx-background-color: #09090b;
+    -fx-border-color: #27272a transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 6 20;
     -fx-alignment: CENTER_LEFT;
 }
 

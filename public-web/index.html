@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2.2">
 </head>
 <body>
     <!-- Top Navigation Bar -->
@@ -20,27 +20,27 @@
                 </div>
                 <div class="live-pill">
                     <span class="pulse-dot"></span>
-                    <span>LIVE ESPORTS</span>
+                    <span>LIVE</span>
                 </div>
             </div>
 
             <nav class="nav-links">
                 <button class="nav-link active" data-tab="tournaments-view">Tournaments</button>
-                <button class="nav-link" data-tab="bracket-view">Live Bracket</button>
+                <button class="nav-link" data-tab="bracket-view">Bracket</button>
                 <button class="nav-link" data-tab="standings-view">Standings</button>
                 <button class="nav-link" data-tab="schedule-view">Matches</button>
                 <button class="nav-link" data-tab="teams-view">Teams</button>
             </nav>
 
             <div class="nav-actions">
-                <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-secondary" id="btn-download-app" download title="Download Windows Organizer Application">
-                    <span>⬇</span> Desktop App
+                <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-secondary" id="btn-download-app" download title="Download Windows Suite">
+                    <span>⬇</span> App
                 </a>
                 <button class="btn btn-outline" id="btn-refresh" title="Refresh Live Data">
                     <span class="btn-icon">↻</span> Sync
                 </button>
                 <button class="btn btn-secondary" id="btn-open-register">
-                    <span>+</span> Register Team
+                    <span>+</span> Register
                 </button>
                 <button class="btn btn-primary" id="btn-user-action">
                     Sign In
@@ -369,6 +369,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=2.2"></script>
 </body>
 </html>
