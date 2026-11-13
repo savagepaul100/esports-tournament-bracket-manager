@@ -89,11 +89,27 @@ public class DashboardView extends VBox {
             }
         });
 
+        Button btnSeed = new Button("⚡ Seed Prototype Data");
+        btnSeed.getStyleClass().add("btn-success");
+        btnSeed.setOnAction(e -> {
+            boolean confirm = CyberAlert.showConfirm("Seed Prototype Data",
+                    "Populate Cloud Firestore with live championship matches, ongoing game, and rosters?",
+                    "This initializes real-time tournament operations across desktop and web portal.");
+            if (confirm) {
+                if (apiClient.seedPrototypeData()) {
+                    CyberAlert.showInfo("Seed Complete", "Cloud Firestore populated with live esports tournament data!");
+                    initView();
+                } else {
+                    CyberAlert.showError("Seed Error", "Failed to seed data. Check network/Firebase connection.");
+                }
+            }
+        });
+
         Button btnRefresh = new Button("↻ Sync Data");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> initView());
 
-        actionsBox.getChildren().addAll(actionLabel, btnNewTournament, btnOpenPortal, btnRefresh);
+        actionsBox.getChildren().addAll(actionLabel, btnNewTournament, btnOpenPortal, btnSeed, btnRefresh);
 
         // Recent Activity Feed
         VBox activityCard = new VBox(12);

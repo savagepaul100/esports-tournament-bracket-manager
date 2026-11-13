@@ -46,6 +46,21 @@ public class BracketView extends VBox {
         btnGenerate.getStyleClass().add("btn-primary");
         btnGenerate.setOnAction(e -> generateBracket());
 
+        Button btnSeed = new Button("⚡ Seed Prototype Data");
+        btnSeed.getStyleClass().add("btn-success");
+        btnSeed.setOnAction(e -> {
+            boolean confirm = CyberAlert.showConfirm("Seed Prototype Data",
+                    "Populate Cloud Firestore with live VCT Masters bracket and ongoing match?",
+                    "This initializes the tournament tree with live scores and progression.");
+            if (confirm) {
+                if (apiClient.seedPrototypeData()) {
+                    CyberAlert.showInfo("Data Seeded", "Bracket populated with live tournament data!");
+                    loadTournaments();
+                    loadBracket();
+                }
+            }
+        });
+
         Button btnRefresh = new Button("↻ Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> {
@@ -53,7 +68,7 @@ public class BracketView extends VBox {
             loadBracket();
         });
 
-        topBar.getChildren().addAll(lblSelect, cmbTournament, btnGenerate, btnRefresh);
+        topBar.getChildren().addAll(lblSelect, cmbTournament, btnGenerate, btnSeed, btnRefresh);
 
         // Bracket Canvas/Container
         bracketContainer = new HBox(28);
@@ -201,8 +216,9 @@ public class BracketView extends VBox {
         dialog.setTitle("RECORD MATCH RESULT");
         dialog.setHeaderText("Match #" + match.getMatchNumber() + ": " + match.getTeamAName() + " vs " + match.getTeamBName());
 
+        ButtonType btnLive = new ButtonType("Set LIVE 🔴", ButtonBar.ButtonData.OTHER);
         ButtonType btnSave = new ButtonType("Confirm & Advance Winner", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
+        dialog.getDialogPane().getButtonTypes().addAll(btnLive, btnSave, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -224,20 +240,33 @@ public class BracketView extends VBox {
         CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(response -> {
-            if (response == btnSave) {
-                try {
-                    int sA = Integer.parseInt(txtScoreA.getText());
-                    int sB = Integer.parseInt(txtScoreB.getText());
+            try {
+                int sA = Integer.parseInt(txtScoreA.getText().trim());
+                int sB = Integer.parseInt(txtScoreB.getText().trim());
+
+                if (response == btnLive) {
+                    boolean ok = apiClient.setMatchLive(match.getId(), sA, sB);
+                    if (ok) {
+                        CyberAlert.showInfo("Match LIVE", "Match is now marked as LIVE with score " + sA + "-" + sB + "!");
+                        loadBracket();
+                    } else {
+                        CyberAlert.showError("Error", "Failed to update match status to LIVE.");
+                    }
+                } else if (response == btnSave) {
+                    if (sA == sB) {
+                        CyberAlert.showError("Draw Not Allowed", "Single-elimination match cannot end in a draw.");
+                        return;
+                    }
                     boolean ok = apiClient.recordMatchScore(match.getId(), sA, sB, txtReason.getText());
                     if (ok) {
                         CyberAlert.showInfo("Score Recorded", "Match score updated and winner advanced in bracket!");
                         loadBracket();
                     } else {
-                        CyberAlert.showError("Score Error", "Failed to record score. Note that matches cannot end in a draw in single-elimination.");
+                        CyberAlert.showError("Score Error", "Failed to record score.");
                     }
-                } catch (NumberFormatException ex) {
-                    CyberAlert.showError("Input Error", "Please enter valid numeric scores.");
                 }
+            } catch (NumberFormatException ex) {
+                CyberAlert.showError("Input Error", "Please enter valid numeric scores.");
             }
         });
     }

@@ -55,6 +55,10 @@ public class TournamentsView extends VBox {
         btnComplete.getStyleClass().add("btn-outline");
         btnComplete.setOnAction(e -> advanceStatus("COMPLETED"));
 
+        Button btnDelete = new Button("🗑️ Delete");
+        btnDelete.getStyleClass().add("btn-danger");
+        btnDelete.setOnAction(e -> deleteSelectedTournament());
+
         Button btnExport = new Button("📥 Export CSV");
         btnExport.getStyleClass().add("btn-cyan");
         btnExport.setOnAction(e -> exportCsv());
@@ -63,7 +67,7 @@ public class TournamentsView extends VBox {
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> loadData());
 
-        actionsBar.getChildren().addAll(btnCreate, btnRegOpen, btnCheckIn, btnInProgress, btnComplete, btnExport, btnRefresh);
+        actionsBar.getChildren().addAll(btnCreate, btnRegOpen, btnCheckIn, btnInProgress, btnComplete, btnDelete, btnExport, btnRefresh);
 
         // Table
         tableView = new TableView<>();
@@ -122,19 +126,50 @@ public class TournamentsView extends VBox {
         }
     }
 
+    private void deleteSelectedTournament() {
+        TournamentDto selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert("Please select a tournament from the table first.");
+            return;
+        }
+
+        boolean confirm = CyberAlert.showConfirm("Delete Tournament",
+                "Are you sure you want to delete '" + selected.getName() + "'?",
+                "This will permanently remove the tournament and its linked matches/teams from Cloud Firestore.");
+        if (confirm) {
+            boolean ok = apiClient.deleteTournament(selected.getId());
+            if (ok) {
+                CyberAlert.showInfo("Deleted", "Tournament '" + selected.getName() + "' deleted from Cloud Firestore.");
+                loadData();
+            } else {
+                CyberAlert.showError("Delete Error", "Could not delete tournament.");
+            }
+        }
+    }
+
     private void exportCsv() {
         TournamentDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Please select a tournament from the table first.");
             return;
         }
-        try {
-            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                Desktop.getDesktop().browse(new URI("http://localhost:8080/api/tournaments/" + selected.getId() + "/export/csv"));
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        // Build CSV content in-memory from Firestore data
+        StringBuilder sb = new StringBuilder();
+        sb.append("Tournament ID,Name,Game,Mode,Status,Max Teams,Published\n");
+        sb.append(String.join(",",
+                selected.getId(),
+                "\"" + selected.getName() + "\"",
+                selected.getGame() != null ? selected.getGame() : "",
+                selected.getMode() != null ? selected.getMode() : "",
+                selected.getStatus() != null ? selected.getStatus() : "",
+                String.valueOf(selected.getMaxParticipants()),
+                selected.isPublished() ? "YES" : "NO"
+        ));
+        javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+        content.putString(sb.toString());
+        clipboard.setContent(content);
+        CyberAlert.showInfo("CSV Exported", "Tournament data copied to clipboard as CSV!");
     }
 
     private void showCreateDialog() {

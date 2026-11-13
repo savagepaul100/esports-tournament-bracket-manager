@@ -14,7 +14,6 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
 import java.awt.Desktop;
-import java.io.File;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,9 +33,6 @@ public class EsportsDesktopApplication extends Application {
         rootLayout = new BorderPane();
         contentHolder = new StackPane();
 
-        // Check & auto-start backend if needed
-        ensureBackendRunning();
-
         // Build Top Bar
         HBox topBar = buildTopBar();
         rootLayout.setTop(topBar);
@@ -45,6 +41,9 @@ public class EsportsDesktopApplication extends Application {
         VBox sidebar = buildSidebar();
         rootLayout.setLeft(sidebar);
         rootLayout.setCenter(contentHolder);
+
+        // Update connection status
+        updateConnectionUi(apiClient.isConnected());
 
         // Initial View: Dashboard
         switchView("dashboard");
@@ -64,6 +63,13 @@ public class EsportsDesktopApplication extends Application {
         primaryStage.setMinWidth(1120);
         primaryStage.setMinHeight(720);
         primaryStage.show();
+
+        if (!apiClient.isConnected()) {
+            Platform.runLater(() -> CyberAlert.showError("Firebase Connection Failed",
+                    "Could not connect to Cloud Firestore.\n" +
+                    "Error: " + apiClient.getConnectionError() + "\n\n" +
+                    "Ensure firebase-service-account.json is bundled correctly."));
+        }
     }
 
     private HBox buildTopBar() {
@@ -74,28 +80,24 @@ public class EsportsDesktopApplication extends Application {
         Label appBadge = new Label("ORGANIZER COMMAND SUITE");
         appBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #94a3b8; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
 
-        lblConnectionStatus = new Label("● CHECKING ENGINE...");
+        lblConnectionStatus = new Label("● CONNECTING TO FIREBASE...");
         lblConnectionStatus.getStyleClass().addAll("badge-pill", "badge-amber-fx");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnCloudPortal = new Button("🌐 Live Cloud Portal (nexusarena-esports.web.app)");
+        Button btnCloudPortal = new Button("🌐 Live Portal → nexusarena-esports.web.app");
         btnCloudPortal.getStyleClass().add("btn-cyan");
         btnCloudPortal.setOnAction(e -> openUrl("https://nexusarena-esports.web.app"));
-
-        Button btnLocalPortal = new Button("💻 Local Web");
-        btnLocalPortal.getStyleClass().add("btn-outline");
-        btnLocalPortal.setOnAction(e -> openUrl("http://localhost:8080"));
 
         Button btnSync = new Button("↻ Sync Data");
         btnSync.getStyleClass().add("btn-outline");
         btnSync.setOnAction(e -> {
-            checkConnectionStatus();
+            updateConnectionUi(apiClient.isConnected());
             switchView(currentViewKey);
         });
 
-        topBar.getChildren().addAll(appBadge, lblConnectionStatus, spacer, btnCloudPortal, btnLocalPortal, btnSync);
+        topBar.getChildren().addAll(appBadge, lblConnectionStatus, spacer, btnCloudPortal, btnSync);
         return topBar;
     }
 
@@ -130,15 +132,16 @@ public class EsportsDesktopApplication extends Application {
 
         // Organizer Profile Box
         VBox profileBox = new VBox(6);
-        profileBox.setStyle("-fx-background-color: #0e1424; -fx-padding: 14; -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 10;");
-        
+        profileBox.setStyle("-fx-background-color: #0e1424; -fx-padding: 14; -fx-background-radius: 10; " +
+                "-fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 10;");
+
         Label userGamerTag = new Label("⚡ " + apiClient.getCurrentUser().getGamerTag());
         userGamerTag.setStyle("-fx-font-weight: 800; -fx-text-fill: #00ff9d; -fx-font-size: 13px;");
-        
-        Label userRole = new Label("ROLE: ORGANIZER / ADMIN");
+
+        Label userRole = new Label("ROLE: " + apiClient.getCurrentUser().getRole());
         userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
 
-        Label cloudStatus = new Label("🔥 Cloud: Google Firestore");
+        Label cloudStatus = new Label("🔥 Powered by Cloud Firestore");
         cloudStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #00f0ff;");
 
         profileBox.getChildren().addAll(userGamerTag, userRole, cloudStatus);
@@ -158,7 +161,6 @@ public class EsportsDesktopApplication extends Application {
 
     private void switchView(String viewKey) {
         this.currentViewKey = viewKey;
-        // Highlight active nav button
         for (Map.Entry<String, Button> entry : navButtons.entrySet()) {
             if (entry.getKey().equals(viewKey)) {
                 entry.getValue().getStyleClass().add("active");
@@ -182,80 +184,17 @@ public class EsportsDesktopApplication extends Application {
         contentHolder.getChildren().add(view);
     }
 
-    private void ensureBackendRunning() {
-        Thread thread = new Thread(() -> {
-            if (apiClient.isBackendAlive()) {
-                updateConnectionUi(true);
-                return;
-            }
-
-            // Attempt to launch backend jar
-            try {
-                File jar = findBackendJar();
-                if (jar != null && jar.exists()) {
-                    Platform.runLater(() -> {
-                        if (lblConnectionStatus != null) {
-                            lblConnectionStatus.setText("⏳ STARTING BACKEND ENGINE...");
-                            lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-amber-fx");
-                        }
-                    });
-
-                    ProcessBuilder pb = new ProcessBuilder("java", "-jar", jar.getAbsolutePath());
-                    pb.directory(jar.getParentFile());
-                    pb.start();
-
-                    // Poll for up to 15 seconds
-                    for (int i = 0; i < 15; i++) {
-                        Thread.sleep(1000);
-                        if (apiClient.isBackendAlive()) {
-                            updateConnectionUi(true);
-                            Platform.runLater(() -> switchView(currentViewKey));
-                            return;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            updateConnectionUi(apiClient.isBackendAlive());
-        });
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    private void checkConnectionStatus() {
-        new Thread(() -> {
-            boolean alive = apiClient.isBackendAlive();
-            updateConnectionUi(alive);
-        }).start();
-    }
-
-    private void updateConnectionUi(boolean isAlive) {
+    private void updateConnectionUi(boolean isConnected) {
         Platform.runLater(() -> {
             if (lblConnectionStatus == null) return;
-            if (isAlive) {
-                lblConnectionStatus.setText("● ENGINE & FIRESTORE ONLINE (Port 8080)");
+            if (isConnected) {
+                lblConnectionStatus.setText("● FIREBASE CONNECTED ✓");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-green-fx");
             } else {
-                lblConnectionStatus.setText("⚠️ BACKEND DISCONNECTED (Click Sync to Retry)");
+                lblConnectionStatus.setText("⚠️ FIREBASE DISCONNECTED");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-live-fx");
             }
         });
-    }
-
-    private File findBackendJar() {
-        String[] possiblePaths = {
-                "backend-1.0.0.jar",
-                "backend/target/backend-1.0.0.jar",
-                "../backend/target/backend-1.0.0.jar",
-                "target/backend-1.0.0.jar"
-        };
-        for (String path : possiblePaths) {
-            File f = new File(path);
-            if (f.exists()) return f;
-        }
-        return null;
     }
 
     private void openUrl(String url) {
