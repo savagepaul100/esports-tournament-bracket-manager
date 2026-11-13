@@ -33,7 +33,7 @@ public class AuditView extends VBox {
         HBox topBar = new HBox(12);
         topBar.setAlignment(Pos.CENTER_LEFT);
 
-        Button btnRefresh = new Button("↻ Refresh Logs");
+        Button btnRefresh = new Button("Refresh Logs");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> loadLogs());
 

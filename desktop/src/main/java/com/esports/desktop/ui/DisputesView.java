@@ -29,15 +29,15 @@ public class DisputesView extends VBox {
         VBox headerBox = new VBox(4);
         Label title = new Label("DISPUTES & FAIR-PLAY INTEGRITY");
         title.getStyleClass().add("view-title");
-        Label subtitle = new Label("Review participant score disputes, investigate evidence clips, and issue tournament-level moderation decisions.");
+        Label subtitle = new Label("Review participant score disputes, investigate evidence clips, and issue moderation rulings.");
         subtitle.getStyleClass().add("view-subtitle");
 
         HBox guidanceBox = new HBox(10);
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
         Label guideTitle = new Label("FAIR-PLAY & INTEGRITY DISPUTES GUIDE");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
@@ -59,15 +59,15 @@ public class DisputesView extends VBox {
         cmbTournament.setPrefWidth(320);
         cmbTournament.setOnAction(e -> loadData());
 
-        Button btnResolveDispute = new Button("⚖️ Resolve Dispute");
+        Button btnResolveDispute = new Button("Resolve Dispute");
         btnResolveDispute.getStyleClass().add("btn-primary");
         btnResolveDispute.setOnAction(e -> showResolveDisputeDialog());
 
-        Button btnModerate = new Button("🛡️ Moderate Player");
+        Button btnModerate = new Button("Moderate Player");
         btnModerate.getStyleClass().add("btn-danger");
         btnModerate.setOnAction(e -> showModerateDialog());
 
-        Button btnRefresh = new Button("↻ Refresh");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> {
             loadTournaments();

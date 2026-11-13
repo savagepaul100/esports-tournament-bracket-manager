@@ -35,7 +35,7 @@ public class DashboardView extends VBox {
         VBox headerBox = new VBox(6);
         Label title = new Label("ORGANIZER COMMAND CENTER");
         title.getStyleClass().add("view-title");
-        Label subtitle = new Label("Welcome back, " + apiClient.getCurrentUser().getGamerTag() + " • Real-Time Tournament Operations");
+        Label subtitle = new Label("Welcome back, " + apiClient.getCurrentUser().getGamerTag() + " - Real-Time Tournament Operations");
         subtitle.getStyleClass().add("view-subtitle");
 
         // Guidance Callout Card
@@ -43,8 +43,8 @@ public class DashboardView extends VBox {
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
         Label guideTitle = new Label("STANDINGS & OPERATIONS OVERVIEW");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
@@ -93,7 +93,7 @@ public class DashboardView extends VBox {
         btnNewTournament.getStyleClass().add("btn-primary");
         btnNewTournament.setOnAction(e -> onNavigateToTournaments.run());
 
-        Button btnOpenPortal = new Button("🌐 Live Cloud Portal (nexusarena-esports.web.app)");
+        Button btnOpenPortal = new Button("Web Portal (nexusarena-esports.web.app)");
         btnOpenPortal.getStyleClass().add("btn-cyan");
         btnOpenPortal.setOnAction(e -> {
             try {
@@ -105,7 +105,7 @@ public class DashboardView extends VBox {
             }
         });
 
-        Button btnSeed = new Button("⚡ Seed Prototype Data");
+        Button btnSeed = new Button("Seed Prototype Data");
         btnSeed.getStyleClass().add("btn-success");
         btnSeed.setOnAction(e -> {
             boolean confirm = CyberAlert.showConfirm("Seed Prototype Data",
@@ -121,7 +121,7 @@ public class DashboardView extends VBox {
             }
         });
 
-        Button btnRefresh = new Button("↻ Sync Data");
+        Button btnRefresh = new Button("Sync Data");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> initView());
 
@@ -148,37 +148,34 @@ public class DashboardView extends VBox {
                 Label timeLabel = new Label(log.getTimestamp() != null && log.getTimestamp().length() >= 19 ? log.getTimestamp().substring(11, 19) : "NOW");
                 timeLabel.setStyle("-fx-text-fill: #64748b; -fx-font-weight: bold;");
 
-                Label actionBadge = new Label(log.getAction());
-                actionBadge.getStyleClass().addAll("badge-pill", "badge-purple-fx");
+                Label actorLabel = new Label("[" + log.getActor() + "]");
+                actorLabel.setStyle("-fx-text-fill: #ea580c; -fx-font-weight: bold;");
 
-                Label actorLabel = new Label("by " + log.getActor() + ":");
-                actorLabel.setStyle("-fx-text-fill: #94a3b8;");
+                Label actionLabelText = new Label(log.getAction() + ": " + log.getReason());
+                actionLabelText.setStyle("-fx-text-fill: #e2e8f0;");
 
-                Label reasonLabel = new Label(log.getReason() != null ? log.getReason() : "");
-                reasonLabel.setStyle("-fx-text-fill: #f1f5f9; -fx-font-weight: 500;");
-
-                logRow.getChildren().addAll(timeLabel, actionBadge, actorLabel, reasonLabel);
+                logRow.getChildren().addAll(timeLabel, actorLabel, actionLabelText);
                 logsContainer.getChildren().add(logRow);
             }
         }
+
         activityCard.getChildren().addAll(activityTitle, logsContainer);
 
         getChildren().addAll(headerBox, statsGrid, actionsBox, activityCard);
     }
 
-    private VBox createStatCard(String title, String value, String accentColor) {
+    private VBox createStatCard(String label, String value, String color) {
         VBox card = new VBox(6);
         card.getStyleClass().add("stat-card");
         HBox.setHgrow(card, Priority.ALWAYS);
 
-        Label lblTitle = new Label(title);
-        lblTitle.getStyleClass().add("stat-title");
+        Label lbl = new Label(label);
+        lbl.setStyle("-fx-font-size: 10.5px; -fx-font-weight: 800; -fx-text-fill: #71717a;");
 
-        Label lblValue = new Label(value);
-        lblValue.getStyleClass().add("stat-value");
-        lblValue.setStyle("-fx-text-fill: " + accentColor + ";");
+        Label val = new Label(value);
+        val.setStyle("-fx-font-size: 26px; -fx-font-weight: 900; -fx-text-fill: " + color + ";");
 
-        card.getChildren().addAll(lblTitle, lblValue);
+        card.getChildren().addAll(lbl, val);
         return card;
     }
 }

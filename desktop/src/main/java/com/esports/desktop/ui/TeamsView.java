@@ -27,19 +27,19 @@ public class TeamsView extends VBox {
         VBox headerBox = new VBox(4);
         Label title = new Label("TEAMS & ROSTER MANAGEMENT");
         title.getStyleClass().add("view-title");
-        Label subtitle = new Label("Password-protected team registrations, roster editing, player removal, and check-in tracking.");
+        Label subtitle = new Label("Team registrations, roster editing, player removal, and check-in tracking.");
         subtitle.getStyleClass().add("view-subtitle");
 
         HBox guidanceBox = new HBox(10);
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
-        Label guideTitle = new Label("TEAM SECURITY & ROSTER MANAGEMENT GUIDE");
+        Label guideTitle = new Label("TEAM & ROSTER MANAGEMENT GUIDE");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
-        Label guideDesc = new Label("Each team requires a security password. Organizers or captains must enter the team password once per reload to edit details.");
+        Label guideDesc = new Label("Register squads, adjust rosters, or remove players. Modifications are secured under the tournament password.");
         guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
         guideText.getChildren().addAll(guideTitle, guideDesc);
         guidanceBox.getChildren().addAll(guideIcon, guideText);
@@ -61,15 +61,15 @@ public class TeamsView extends VBox {
         btnRegister.getStyleClass().add("btn-primary");
         btnRegister.setOnAction(e -> showRegisterDialog());
 
-        Button btnEdit = new Button("✏️ Modify Team");
+        Button btnEdit = new Button("Modify Team");
         btnEdit.getStyleClass().add("btn-cyan");
         btnEdit.setOnAction(e -> showEditTeamDialog());
 
-        Button btnRemovePlayer = new Button("👤 Remove Player");
+        Button btnRemovePlayer = new Button("Remove Player");
         btnRemovePlayer.getStyleClass().add("btn-outline");
         btnRemovePlayer.setOnAction(e -> showRemovePlayerDialog());
 
-        Button btnDeleteTeam = new Button("🗑️ Delete Team");
+        Button btnDeleteTeam = new Button("Delete Team");
         btnDeleteTeam.getStyleClass().add("btn-danger");
         btnDeleteTeam.setOnAction(e -> deleteSelectedTeam());
 
@@ -77,7 +77,7 @@ public class TeamsView extends VBox {
         btnCheckIn.getStyleClass().add("btn-outline");
         btnCheckIn.setOnAction(e -> toggleCheckIn());
 
-        Button btnRefresh = new Button("↻ Refresh");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> {
             loadTournaments();
@@ -98,40 +98,33 @@ public class TeamsView extends VBox {
     private void setupTable() {
         TableColumn<TeamDto, String> colName = new TableColumn<>("TEAM NAME");
         colName.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getName()));
-        colName.setPrefWidth(170);
+        colName.setPrefWidth(190);
 
         TableColumn<TeamDto, String> colTag = new TableColumn<>("TAG");
         colTag.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTag()));
-        colTag.setPrefWidth(75);
-
-        TableColumn<TeamDto, String> colAuth = new TableColumn<>("SESSION AUTH");
-        colAuth.setCellValueFactory(c -> {
-            boolean unlocked = apiClient.isTeamUnlockedThisSession(c.getValue().getId());
-            return new SimpleStringProperty(unlocked ? "🔓 UNLOCKED" : "🔒 PROTECTED");
-        });
-        colAuth.setPrefWidth(110);
+        colTag.setPrefWidth(85);
 
         TableColumn<TeamDto, String> colCaptain = new TableColumn<>("CAPTAIN EMAIL");
         colCaptain.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getCaptainEmail() != null ? c.getValue().getCaptainEmail() : "-"));
-        colCaptain.setPrefWidth(170);
+        colCaptain.setPrefWidth(190);
 
         TableColumn<TeamDto, String> colRoster = new TableColumn<>("ROSTER PLAYERS");
         colRoster.setCellValueFactory(c -> new SimpleStringProperty(String.join(", ", c.getValue().getPlayerNames())));
-        colRoster.setPrefWidth(280);
+        colRoster.setPrefWidth(320);
 
         TableColumn<TeamDto, String> colSeed = new TableColumn<>("SEED");
         colSeed.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getSeed() != null ? "#" + c.getValue().getSeed() : "-"));
-        colSeed.setPrefWidth(65);
+        colSeed.setPrefWidth(70);
 
         TableColumn<TeamDto, String> colStatus = new TableColumn<>("STATUS");
         colStatus.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRegistrationStatus()));
-        colStatus.setPrefWidth(110);
+        colStatus.setPrefWidth(120);
 
         TableColumn<TeamDto, String> colCheckIn = new TableColumn<>("CHECK-IN");
         colCheckIn.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().isCheckedIn() ? "READY" : "NO"));
-        colCheckIn.setPrefWidth(85);
+        colCheckIn.setPrefWidth(90);
 
-        tableView.getColumns().addAll(colName, colTag, colAuth, colCaptain, colRoster, colSeed, colStatus, colCheckIn);
+        tableView.getColumns().addAll(colName, colTag, colCaptain, colRoster, colSeed, colStatus, colCheckIn);
     }
 
     private void loadTournaments() {
@@ -150,41 +143,22 @@ public class TeamsView extends VBox {
         tableView.setItems(FXCollections.observableArrayList(teams));
     }
 
-    /**
-     * Prompts for team password if not already unlocked during this session.
-     */
-    private boolean ensureTeamAuthorized(TeamDto team) {
-        if (apiClient.isTeamUnlockedThisSession(team.getId())) {
+    private boolean ensureTournamentAuthorized(String tournamentId) {
+        if (tournamentId == null || apiClient.isTournamentUnlocked(tournamentId)) {
             return true;
         }
-
-        PasswordField pf = new PasswordField();
-        pf.setPromptText("Enter team security password");
-
-        Dialog<String> authDialog = new Dialog<>();
-        authDialog.setTitle("TEAM AUTHORIZATION REQUIRED");
-        authDialog.setHeaderText("Enter team password for '" + team.getName() + "' (Required once per session):");
-
-        ButtonType btnUnlock = new ButtonType("Unlock Team 🔓", ButtonBar.ButtonData.OK_DONE);
-        authDialog.getDialogPane().getButtonTypes().addAll(btnUnlock, ButtonType.CANCEL);
-
-        VBox box = new VBox(10);
-        box.setPadding(new Insets(20));
-        box.getChildren().addAll(new Label("Password:"), pf);
-        authDialog.getDialogPane().setContent(box);
-        CyberAlert.style(authDialog);
-
-        authDialog.setResultConverter(b -> (b == btnUnlock) ? pf.getText().trim() : null);
-
-        Optional<String> res = authDialog.showAndWait();
+        TournamentDto t = apiClient.getTournamentById(tournamentId);
+        String name = t != null ? t.getName() : "Tournament";
+        Optional<String> res = CyberAlert.showPasswordInput("Tournament Security",
+                "Password Required for " + name,
+                "Enter tournament master password to modify rosters:");
         if (res.isPresent()) {
-            boolean valid = apiClient.unlockTeamWithPassword(team.getId(), res.get());
+            boolean valid = apiClient.unlockTournamentWithPassword(tournamentId, res.get().trim());
             if (valid) {
-                CyberAlert.showInfo("Access Granted", "Team '" + team.getName() + "' is now unlocked for this session.");
-                tableView.refresh();
+                CyberAlert.showInfo("Access Granted", "Tournament unlocked for this session.");
                 return true;
             } else {
-                CyberAlert.showError("Access Denied", "Incorrect password for team '" + team.getName() + "'.");
+                CyberAlert.showError("Access Denied", "Incorrect tournament password.");
                 return false;
             }
         }
@@ -200,7 +174,7 @@ public class TeamsView extends VBox {
 
         Dialog<TeamDto> dialog = new Dialog<>();
         dialog.setTitle("REGISTER NEW TEAM");
-        dialog.setHeaderText("Create team roster with mandatory strong password protection.");
+        dialog.setHeaderText("Register team roster for " + selected.getName());
 
         ButtonType btnSave = new ButtonType("Register Team", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
@@ -211,10 +185,10 @@ public class TeamsView extends VBox {
         grid.setPadding(new Insets(20));
 
         TextField txtName = new TextField();
-        txtName.setPromptText("e.g. Cloud9 / Team Secret");
+        txtName.setPromptText("e.g. Sentinels / Natus Vincere");
 
         TextField txtTag = new TextField();
-        txtTag.setPromptText("e.g. C9");
+        txtTag.setPromptText("e.g. SEN");
 
         TextField txtEmail = new TextField();
         txtEmail.setPromptText("captain@team.gg");
@@ -222,9 +196,6 @@ public class TeamsView extends VBox {
         TextArea txtRoster = new TextArea();
         txtRoster.setPromptText("Comma-separated player gamer tags, e.g. player1, player2, player3");
         txtRoster.setPrefRowCount(3);
-
-        PasswordField txtPass = new PasswordField();
-        txtPass.setPromptText("At least 6 characters");
 
         TextField txtSeed = new TextField("1");
 
@@ -236,10 +207,8 @@ public class TeamsView extends VBox {
         grid.add(txtEmail, 1, 2);
         grid.add(new Label("Roster (Players):"), 0, 3);
         grid.add(txtRoster, 1, 3);
-        grid.add(new Label("Team Password:"), 0, 4);
-        grid.add(txtPass, 1, 4);
-        grid.add(new Label("Initial Seed:"), 0, 5);
-        grid.add(txtSeed, 1, 5);
+        grid.add(new Label("Initial Seed:"), 0, 4);
+        grid.add(txtSeed, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
         CyberAlert.style(dialog);
@@ -250,16 +219,11 @@ public class TeamsView extends VBox {
                     CyberAlert.showError("Validation Error", "Team name is required.");
                     return null;
                 }
-                if (txtPass.getText().trim().length() < 4) {
-                    CyberAlert.showError("Security Error", "Team password must be at least 4 characters long.");
-                    return null;
-                }
                 TeamDto t = new TeamDto();
                 t.setTournamentId(selected.getId());
                 t.setName(txtName.getText().trim());
                 t.setTag(txtTag.getText().trim());
                 t.setCaptainEmail(txtEmail.getText().trim());
-                t.setPassword(txtPass.getText().trim());
                 t.setCheckedIn(true);
                 t.setRegistrationStatus("APPROVED");
 
@@ -283,7 +247,7 @@ public class TeamsView extends VBox {
         dialog.showAndWait().ifPresent(team -> {
             boolean ok = apiClient.registerTeam(team);
             if (ok) {
-                CyberAlert.showInfo("Team Registered", "Team '" + team.getName() + "' registered to Cloud Firestore and authorized for this session!");
+                CyberAlert.showInfo("Team Registered", "Team '" + team.getName() + "' registered to Cloud Firestore!");
                 loadTeams();
             } else {
                 CyberAlert.showError("Registration Error", "Failed to register team.");
@@ -298,13 +262,13 @@ public class TeamsView extends VBox {
             return;
         }
 
-        if (!ensureTeamAuthorized(selected)) {
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("MODIFY TEAM DETAILS");
-        dialog.setHeaderText("Authorized modification for '" + selected.getName() + "'");
+        dialog.setHeaderText("Modify details for '" + selected.getName() + "'");
 
         ButtonType btnSave = new ButtonType("Save Changes", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
@@ -376,7 +340,7 @@ public class TeamsView extends VBox {
             return;
         }
 
-        if (!ensureTeamAuthorized(selected)) {
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 
@@ -410,7 +374,7 @@ public class TeamsView extends VBox {
             return;
         }
 
-        if (!ensureTeamAuthorized(selected)) {
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 

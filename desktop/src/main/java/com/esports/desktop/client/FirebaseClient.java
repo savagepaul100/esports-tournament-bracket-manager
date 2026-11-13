@@ -836,7 +836,7 @@ public class FirebaseClient {
                     "tm-1", "Sentinels", 13, 64, "tm-3", "Fnatic", 11, 59,
                     "COMPLETE", "tm-1", "Sentinels", "Ascent", "VCT-SF-201", "vct2026", "2026-11-14T15:00:00Z");
 
-            // Semi-Final 2 (🔥 LIVE RIGHT NOW! High tension 11-12 score with 48 vs 51 kills!)
+            // Semi-Final 2 (LIVE RIGHT NOW! High tension 11-12 score with 48 vs 51 kills!)
             seedMatch("match-val-sf2", "trn-val-masters", 2, 2, "Semi-Finals",
                     "tm-5", "Paper Rex", 11, 48, "tm-7", "Evil Geniuses", 12, 51,
                     "LIVE", null, null, "Lotus", "VCT-LIVE-202", "livepass99", "2026-11-14T17:00:00Z");

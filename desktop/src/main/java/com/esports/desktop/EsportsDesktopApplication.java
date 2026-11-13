@@ -110,14 +110,14 @@ public class EsportsDesktopApplication extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button btnSync = new Button("↻ Sync Data");
+        Button btnSync = new Button("Sync Data");
         btnSync.getStyleClass().add("btn-outline");
         btnSync.setOnAction(e -> {
             btnSync.setDisable(true);
-            btnSync.setText("↻ Syncing...");
+            btnSync.setText("Syncing...");
             apiClient.refreshAllAsync(() -> {
                 btnSync.setDisable(false);
-                btnSync.setText("↻ Sync Data");
+                btnSync.setText("Sync Data");
                 updateConnectionUi(apiClient.isConnected());
                 refreshTournamentsDropdown();
                 switchView(currentViewKey);
@@ -125,14 +125,14 @@ public class EsportsDesktopApplication extends Application {
             });
         });
 
-        Button btnPortal = new Button("🌐 Live Web Portal");
+        Button btnPortal = new Button("Live Web Portal");
         btnPortal.getStyleClass().add("btn-cyan");
         btnPortal.setOnAction(e -> openUrl("https://nexusarena-esports.web.app"));
 
-        lblConnectionStatus = new Label("● CLOUD ONLINE");
+        lblConnectionStatus = new Label("CLOUD ONLINE");
         lblConnectionStatus.getStyleClass().addAll("badge-pill", "badge-green-fx");
 
-        Label userBadge = new Label("⚡ " + apiClient.getCurrentUser().getGamerTag() + " (ORGANIZER)");
+        Label userBadge = new Label(apiClient.getCurrentUser().getGamerTag() + " (ORGANIZER)");
         userBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
 
         topBar.getChildren().addAll(lblPicker, cmbActiveTournament, spacer, btnSync, btnPortal, lblConnectionStatus, userBadge);
@@ -148,8 +148,8 @@ public class EsportsDesktopApplication extends Application {
         HBox brandBox = new HBox(6);
         brandBox.setAlignment(Pos.CENTER_LEFT);
         brandBox.setStyle("-fx-padding: 4 0 12 4;");
-        Label icon = new Label("⚡");
-        icon.setStyle("-fx-font-size: 20px; -fx-text-fill: #dc2626;");
+        Label icon = new Label("//");
+        icon.setStyle("-fx-font-size: 16px; -fx-font-weight: 900; -fx-text-fill: #dc2626;");
         Label brand = new Label("NEXUS ");
         brand.getStyleClass().add("brand-label");
         Label brandAccent = new Label("ARENA");
@@ -159,13 +159,13 @@ public class EsportsDesktopApplication extends Application {
         // Navigation Group (Vertical side panel)
         VBox navGroup = new VBox(4);
         navGroup.getChildren().addAll(
-                createNavButton("🏆  Tournaments", "tournaments"),
-                createNavButton("⚡  Bracket Tree", "bracket"),
-                createNavButton("📊  Standings", "dashboard"),
-                createNavButton("🎮  Live Matches", "matches"),
-                createNavButton("👥  Team Rosters", "teams"),
-                createNavButton("🛡️  Disputes", "disputes"),
-                createNavButton("📜  Audit Trail", "audit")
+                createNavButton("Tournaments", "tournaments"),
+                createNavButton("Bracket Tree", "bracket"),
+                createNavButton("Standings", "dashboard"),
+                createNavButton("Live Matches", "matches"),
+                createNavButton("Team Rosters", "teams"),
+                createNavButton("Disputes", "disputes"),
+                createNavButton("Audit Trail", "audit")
         );
         VBox.setVgrow(navGroup, Priority.ALWAYS);
 
@@ -177,10 +177,10 @@ public class EsportsDesktopApplication extends Application {
         Label lblVer = new Label("Nexus Arena v" + ApiClient.CURRENT_VERSION);
         lblVer.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #ffffff;");
 
-        Label lblCloudSync = new Label("🔥 Firestore Synced");
+        Label lblCloudSync = new Label("Firestore Synced");
         lblCloudSync.setStyle("-fx-font-size: 10px; -fx-text-fill: #dc2626; -fx-font-weight: bold;");
 
-        Button btnUpdate = new Button("🔄 Check for Updates");
+        Button btnUpdate = new Button("Check for Updates");
         btnUpdate.setMaxWidth(Double.MAX_VALUE);
         btnUpdate.getStyleClass().add("btn-outline");
         btnUpdate.setStyle("-fx-font-size: 10.5px; -fx-padding: 5 8;");
@@ -197,7 +197,7 @@ public class EsportsDesktopApplication extends Application {
         btnUpdate.setText("Checking cloud...");
         apiClient.checkForUpdatesAsync(res -> {
             btnUpdate.setDisable(false);
-            btnUpdate.setText("🔄 Check for Updates");
+            btnUpdate.setText("Check for Updates");
 
             if (res.updateAvailable) {
                 boolean downloadNow = CyberAlert.showConfirm("Update Available (" + res.latestVersion + ")",
@@ -266,13 +266,13 @@ public class EsportsDesktopApplication extends Application {
         footer.setMinHeight(26);
         footer.setMaxHeight(26);
 
-        Label lblEngine = new Label("⚡ NEXUS ARENA ESPORTS ENGINE");
+        Label lblEngine = new Label("NEXUS ARENA ESPORTS ENGINE");
         lblEngine.setStyle("-fx-font-weight: 800; -fx-text-fill: #71717a; -fx-font-size: 10px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Label lblDetails = new Label("100% Cloud-Synchronized (Google Firestore: nexusarena-esports) • Java 21");
+        Label lblDetails = new Label("100% Cloud-Synchronized (Google Firestore: nexusarena-esports) - Java 21");
         lblDetails.setStyle("-fx-text-fill: #52525b; -fx-font-size: 9.5px;");
 
         footer.getChildren().addAll(lblEngine, spacer, lblDetails);
@@ -283,10 +283,10 @@ public class EsportsDesktopApplication extends Application {
         Platform.runLater(() -> {
             if (lblConnectionStatus == null) return;
             if (isConnected) {
-                lblConnectionStatus.setText("● CLOUD ONLINE ✓");
+                lblConnectionStatus.setText("CLOUD ONLINE");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-green-fx");
             } else {
-                lblConnectionStatus.setText("⚠️ CACHE MODE");
+                lblConnectionStatus.setText("CACHE MODE");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-live-fx");
             }
         });

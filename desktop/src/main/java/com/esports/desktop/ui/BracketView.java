@@ -34,12 +34,12 @@ public class BracketView extends VBox {
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
         Label guideTitle = new Label("INTERACTIVE BRACKET TREE GUIDE");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
-        Label guideDesc = new Label("Double-click or click any match card to update live rounds and kills in real time. Winners automatically advance to the next round.");
+        Label guideDesc = new Label("Click any match node to update live rounds and kills in real time. Winners automatically advance to the next round.");
         guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
         guideText.getChildren().addAll(guideTitle, guideDesc);
         guidanceBox.getChildren().addAll(guideIcon, guideText);
@@ -57,15 +57,15 @@ public class BracketView extends VBox {
         cmbTournament.setPrefWidth(320);
         cmbTournament.setOnAction(e -> loadBracket());
 
-        Button btnGenerate = new Button("⚡ Generate Bracket");
+        Button btnGenerate = new Button("Generate Bracket");
         btnGenerate.getStyleClass().add("btn-primary");
         btnGenerate.setOnAction(e -> generateBracket());
 
-        Button btnSeed = new Button("⚡ Seed Prototype Data");
+        Button btnSeed = new Button("Seed Prototype Data");
         btnSeed.getStyleClass().add("btn-success");
         btnSeed.setOnAction(e -> {
             boolean confirm = CyberAlert.showConfirm("Seed Prototype Data",
-                    "Populate Cloud Firestore with live VCT Masters bracket and ongoing match?",
+                    "Populate Cloud Firestore with live tournament bracket and ongoing match?",
                     "This initializes the tournament tree with live scores and progression.");
             if (confirm) {
                 if (apiClient.seedPrototypeData()) {
@@ -76,7 +76,7 @@ public class BracketView extends VBox {
             }
         });
 
-        Button btnRefresh = new Button("↻ Refresh");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> {
             loadTournaments();
@@ -215,7 +215,7 @@ public class BracketView extends VBox {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setStyle("-fx-padding: 4 6; -fx-background-radius: 2;" + (isWinner ? "-fx-background-color: rgba(234, 88, 12, 0.15);" : ""));
 
-        Label nameLbl = new Label((isWinner ? "👑 " : "") + (name != null ? name : "TBD"));
+        Label nameLbl = new Label((isWinner ? "[W] " : "") + (name != null ? name : "TBD"));
         nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: " + (isWinner ? "#ea580c;" : "#ffffff;"));
         HBox.setHgrow(nameLbl, Priority.ALWAYS);
 
@@ -233,7 +233,7 @@ public class BracketView extends VBox {
         dialog.setTitle("RECORD MATCH RESULT");
         dialog.setHeaderText("Match #" + match.getMatchNumber() + ": " + match.getTeamAName() + " vs " + match.getTeamBName());
 
-        ButtonType btnLive = new ButtonType("Set LIVE 🔴", ButtonBar.ButtonData.OTHER);
+        ButtonType btnLive = new ButtonType("Set LIVE", ButtonBar.ButtonData.OTHER);
         ButtonType btnSave = new ButtonType("Confirm & Advance Winner", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnLive, btnSave, ButtonType.CANCEL);
 

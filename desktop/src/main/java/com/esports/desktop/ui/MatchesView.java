@@ -13,6 +13,7 @@ import javafx.scene.layout.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class MatchesView extends VBox {
     private final ApiClient apiClient;
@@ -36,12 +37,12 @@ public class MatchesView extends VBox {
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
         Label guideTitle = new Label("LIVE MATCH CONTROL ROOM GUIDE");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
-        Label guideDesc = new Label("Select a match to update rounds and total kills live, adjust room IPs/passwords, or finalize results for cloud bracket progression.");
+        Label guideDesc = new Label("Select a match to update rounds and kills live, adjust room credentials, or finalize results for bracket advancement.");
         guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
         guideText.getChildren().addAll(guideTitle, guideDesc);
         guidanceBox.getChildren().addAll(guideIcon, guideText);
@@ -59,31 +60,31 @@ public class MatchesView extends VBox {
         cmbTournament.setPrefWidth(260);
         cmbTournament.setOnAction(e -> loadMatches());
 
-        Button btnSetLive = new Button("🔴 Set Match LIVE");
+        Button btnSetLive = new Button("Set Match LIVE");
         btnSetLive.getStyleClass().add("btn-danger");
         btnSetLive.setOnAction(e -> showSetLiveDialog());
 
-        Button btnScore = new Button("🎮 Finalize Result");
+        Button btnScore = new Button("Finalize Result");
         btnScore.getStyleClass().add("btn-primary");
         btnScore.setOnAction(e -> showScoreDialog(false));
 
-        Button btnEditMatch = new Button("✏️ Modify Details");
+        Button btnEditMatch = new Button("Modify Details");
         btnEditMatch.getStyleClass().add("btn-cyan");
         btnEditMatch.setOnAction(e -> showEditMatchDialog());
 
-        Button btnDeleteMatch = new Button("🗑️ Delete Match");
+        Button btnDeleteMatch = new Button("Delete Match");
         btnDeleteMatch.getStyleClass().add("btn-danger");
         btnDeleteMatch.setOnAction(e -> deleteSelectedMatch());
 
-        Button btnSchedule = new Button("🕒 Room & Map");
+        Button btnSchedule = new Button("Room & Map");
         btnSchedule.getStyleClass().add("btn-outline");
         btnSchedule.setOnAction(e -> showScheduleDialog());
 
-        Button btnSeed = new Button("⚡ Seed Prototype");
+        Button btnSeed = new Button("Seed Prototype");
         btnSeed.getStyleClass().add("btn-success");
         btnSeed.setOnAction(e -> seedData());
 
-        Button btnRefresh = new Button("↻ Refresh");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> {
             loadTournaments();
@@ -118,14 +119,14 @@ public class MatchesView extends VBox {
         colScore.setCellValueFactory(c -> {
             MatchDto m = c.getValue();
             if ("LIVE".equals(m.getStatus())) {
-                return new SimpleStringProperty("🔥 " + m.getScoreA() + " - " + m.getScoreB());
+                return new SimpleStringProperty("[LIVE] " + m.getScoreA() + " - " + m.getScoreB());
             } else if ("COMPLETE".equals(m.getStatus())) {
                 return new SimpleStringProperty(m.getScoreA() + " - " + m.getScoreB());
             } else {
                 return new SimpleStringProperty("vs");
             }
         });
-        colScore.setPrefWidth(110);
+        colScore.setPrefWidth(120);
 
         TableColumn<MatchDto, String> colKills = new TableColumn<>("KILLS (A - B)");
         colKills.setCellValueFactory(c -> {
@@ -145,9 +146,9 @@ public class MatchesView extends VBox {
         TableColumn<MatchDto, String> colStatus = new TableColumn<>("STATUS");
         colStatus.setCellValueFactory(c -> {
             String s = c.getValue().getStatus();
-            return new SimpleStringProperty("LIVE".equals(s) ? "🔴 LIVE NOW" : s);
+            return new SimpleStringProperty(s);
         });
-        colStatus.setPrefWidth(110);
+        colStatus.setPrefWidth(90);
 
         TableColumn<MatchDto, String> colRoom = new TableColumn<>("ROOM ID");
         colRoom.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getRoomId() != null ? c.getValue().getRoomId() : "Pending"));
@@ -184,10 +185,32 @@ public class MatchesView extends VBox {
         tableView.setItems(FXCollections.observableArrayList(matches));
     }
 
+    private boolean ensureTournamentAuthorized(String tournamentId) {
+        if (tournamentId == null || apiClient.isTournamentUnlocked(tournamentId)) {
+            return true;
+        }
+        TournamentDto t = apiClient.getTournamentById(tournamentId);
+        String name = t != null ? t.getName() : "Tournament";
+        Optional<String> res = CyberAlert.showPasswordInput("Tournament Security",
+                "Password Required for " + name,
+                "Enter tournament master password to modify matches:");
+        if (res.isPresent()) {
+            boolean valid = apiClient.unlockTournamentWithPassword(tournamentId, res.get().trim());
+            if (valid) {
+                CyberAlert.showInfo("Access Granted", "Tournament unlocked for this session.");
+                return true;
+            } else {
+                CyberAlert.showError("Access Denied", "Incorrect tournament password.");
+                return false;
+            }
+        }
+        return false;
+    }
+
     private void seedData() {
         boolean confirm = CyberAlert.showConfirm("Seed Prototype Data",
                 "Populate Cloud Firestore with multi-game championships, live ongoing matches, and kills?",
-                "This configures VCT Masters (PRX 11-12 EG LIVE), CS2 Cologne Major (NaVi vs FaZe LIVE), Dota 2, and Apex Legends.");
+                "This configures CS2 Cologne Major, VCT Masters, Dota 2, Apex Legends, and BGMI.");
         if (confirm) {
             boolean ok = apiClient.seedPrototypeData();
             if (ok) {
@@ -207,11 +230,15 @@ public class MatchesView extends VBox {
             return;
         }
 
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
+            return;
+        }
+
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("SET MATCH AS LIVE IN-PROGRESS");
         dialog.setHeaderText("Set Match #" + selected.getMatchNumber() + " (" + selected.getTeamAName() + " vs " + selected.getTeamBName() + ") as LIVE");
 
-        ButtonType btnLive = new ButtonType("Go LIVE 🔴", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnLive = new ButtonType("Go LIVE", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnLive, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
@@ -267,6 +294,10 @@ public class MatchesView extends VBox {
 
         if (selected.isBye()) {
             showAlert("This match is an automatic BYE progression.");
+            return;
+        }
+
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 
@@ -333,6 +364,10 @@ public class MatchesView extends VBox {
         MatchDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Please select a match from the table first.");
+            return;
+        }
+
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 
@@ -427,6 +462,10 @@ public class MatchesView extends VBox {
             return;
         }
 
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
+            return;
+        }
+
         boolean confirm = CyberAlert.showConfirm("Delete Match",
                 "Delete Match #" + selected.getMatchNumber() + " (" + selected.getTeamAName() + " vs " + selected.getTeamBName() + ")?",
                 "This match will be permanently deleted from Cloud Firestore.");
@@ -445,6 +484,10 @@ public class MatchesView extends VBox {
         MatchDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Please select a match from the table first.");
+            return;
+        }
+
+        if (!ensureTournamentAuthorized(selected.getTournamentId())) {
             return;
         }
 

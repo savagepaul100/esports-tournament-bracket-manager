@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
+  "version": "2.5.0",
   "downloadUrl": "https://nexusarena-esports.web.app/download/NexusArena-Organizer-Windows.zip",
   "jarUrl": "https://nexusarena-esports.web.app/download/NexusArena.jar",
-  "releaseNotes": "Performance upgrade: Non-blocking asynchronous Firestore engine, side-panel layout, instant response times, and guidance banners."
+  "releaseNotes": "Zero-lag in-memory prototype cache, tournament-level password security, 6 authentic esports titles (CS2, Valorant, Dota 2, Apex Legends, BGMI, Rocket League), and clean typography."
 }

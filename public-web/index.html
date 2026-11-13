@@ -15,40 +15,36 @@
         <aside class="app-sidebar">
             <div class="sidebar-brand">
                 <div class="brand-logo">
-                    <span class="logo-icon">⚡</span>
+                    <span class="logo-icon">//</span>
                     <span class="brand-text">NEXUS<span class="accent-red">ARENA</span></span>
-                </div>
-                <div class="live-pill">
-                    <span class="pulse-dot"></span>
-                    <span>LIVE</span>
                 </div>
             </div>
 
             <nav class="sidebar-nav">
                 <button class="nav-link active" data-tab="tournaments-view">
-                    <span class="nav-icon">🏆</span> Tournaments
+                    <span class="nav-icon">></span> Tournaments
                 </button>
                 <button class="nav-link" data-tab="bracket-view">
-                    <span class="nav-icon">⚡</span> Bracket Tree
+                    <span class="nav-icon">></span> Bracket Tree
                 </button>
                 <button class="nav-link" data-tab="standings-view">
-                    <span class="nav-icon">📊</span> Standings
+                    <span class="nav-icon">></span> Standings
                 </button>
                 <button class="nav-link" data-tab="schedule-view">
-                    <span class="nav-icon">🎮</span> Live Matches
+                    <span class="nav-icon">></span> Live Matches
                 </button>
                 <button class="nav-link" data-tab="teams-view">
-                    <span class="nav-icon">👥</span> Team Rosters
+                    <span class="nav-icon">></span> Team Rosters
                 </button>
             </nav>
 
             <div class="sidebar-footer">
                 <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-secondary btn-block" id="btn-download-app" download title="Download Windows Organizer Application">
-                    <span>⬇</span> Download Windows App
+                    <span>[DL]</span> Download Windows App
                 </a>
                 <div class="version-meta">
-                    <span>Nexus Arena v2.4.0</span>
-                    <span class="cloud-status-dot">🔥 Cloud Firestore Live</span>
+                    <span>Nexus Arena v2.5.0</span>
+                    <span class="cloud-status-dot">Cloud Firestore Online</span>
                 </div>
             </div>
         </aside>
@@ -68,7 +64,7 @@
 
                 <div class="top-actions">
                     <button class="btn btn-outline" id="btn-refresh" title="Refresh Live Cloud Data">
-                        <span class="btn-icon">↻</span> Sync
+                        Sync
                     </button>
                     <button class="btn btn-secondary" id="btn-open-register">
                         <span>+</span> Register Team
@@ -85,7 +81,7 @@
                 <section id="tournaments-view" class="tab-pane active">
                     <!-- Guidance Banner -->
                     <div class="guidance-banner">
-                        <span class="guide-icon">💡</span>
+                        <span class="guide-icon">[GUIDE]</span>
                         <div>
                             <strong>TOURNAMENT OPERATIONS GUIDE:</strong>
                             <p>Browse active and upcoming esports championships. Filter by game, inspect rules, or click "+ Register Team" above to enroll your squad.</p>
@@ -99,8 +95,9 @@
                             <button class="filter-chip" data-filter="Valorant">Valorant</button>
                             <button class="filter-chip" data-filter="Counter-Strike 2">CS2</button>
                             <button class="filter-chip" data-filter="Dota 2">Dota 2</button>
-                            <button class="filter-chip" data-filter="Battlegrounds Mobile">BGMI</button>
+                            <button class="filter-chip" data-filter="Battlegrounds Mobile India">BGMI</button>
                             <button class="filter-chip" data-filter="Apex Legends">Apex Legends</button>
+                            <button class="filter-chip" data-filter="Rocket League">Rocket League</button>
                         </div>
                     </div>
                     <div class="tournaments-grid" id="tournaments-list">
@@ -112,7 +109,7 @@
                 <section id="bracket-view" class="tab-pane">
                     <!-- Guidance Banner -->
                     <div class="guidance-banner">
-                        <span class="guide-icon">💡</span>
+                        <span class="guide-icon">[GUIDE]</span>
                         <div>
                             <strong>INTERACTIVE BRACKET GUIDE:</strong>
                             <p>Live single-elimination tournament tree. Rounds, frags/kills, and scores update in real time with Cloud Firestore. Winners automatically advance to the next round.</p>
@@ -122,7 +119,7 @@
                     <div class="section-header">
                         <div>
                             <h2>Championship Bracket Tree</h2>
-                            <p class="subtitle">Live tree progression with verified scores & automatic winner advancement.</p>
+                            <p class="subtitle">Live tree progression with verified scores &amp; automatic winner advancement.</p>
                         </div>
                         <div class="bracket-legend">
                             <span class="legend-item"><span class="legend-dot dot-live"></span> Live Match</span>
@@ -140,20 +137,20 @@
                 <section id="standings-view" class="tab-pane">
                     <!-- Guidance Banner -->
                     <div class="guidance-banner">
-                        <span class="guide-icon">💡</span>
+                        <span class="guide-icon">[GUIDE]</span>
                         <div>
-                            <strong>STANDINGS & LEADERBOARD GUIDE:</strong>
+                            <strong>STANDINGS &amp; LEADERBOARD GUIDE:</strong>
                             <p>Official tournament ladder compiled from completed match results, frags/kills, and placement points. Real-time updates synchronized across web and desktop.</p>
                         </div>
                     </div>
 
                     <div class="section-header">
                         <div>
-                            <h2>Tournament Standings & Leaderboard</h2>
+                            <h2>Tournament Standings &amp; Leaderboard</h2>
                             <p class="subtitle">Real-time cumulative points, placement scores, and kill tallies.</p>
                         </div>
                         <button class="btn btn-outline" id="btn-export-csv" onclick="downloadCsv()">
-                            📥 Export CSV
+                            Export CSV
                         </button>
                     </div>
 
@@ -182,7 +179,7 @@
                 <section id="schedule-view" class="tab-pane">
                     <!-- Guidance Banner -->
                     <div class="guidance-banner">
-                        <span class="guide-icon">💡</span>
+                        <span class="guide-icon">[GUIDE]</span>
                         <div>
                             <strong>LIVE MATCH SCHEDULE GUIDE:</strong>
                             <p>View upcoming, live, and finished tournament matches. Verified captains can review map assignments, server room IDs, and room passwords.</p>
@@ -205,10 +202,10 @@
                 <section id="teams-view" class="tab-pane">
                     <!-- Guidance Banner -->
                     <div class="guidance-banner">
-                        <span class="guide-icon">💡</span>
+                        <span class="guide-icon">[GUIDE]</span>
                         <div>
-                            <strong>TEAM ROSTERS & SECURITY GUIDE:</strong>
-                            <p>Approved team rosters and tournament seedings. Every registered team is protected by a security password created at registration time.</p>
+                            <strong>TEAM ROSTERS GUIDE:</strong>
+                            <p>Approved team rosters and tournament seedings. Roster changes and bracket operations are secured under the tournament password.</p>
                         </div>
                     </div>
 
@@ -228,7 +225,7 @@
             <!-- FOOTER -->
             <footer class="footer">
                 <div class="footer-container">
-                    <div class="footer-brand">⚡ NEXUS ARENA ESPORTS ENGINE</div>
+                    <div class="footer-brand">NEXUS ARENA ESPORTS ENGINE</div>
                     <div class="footer-copy">Full-Stack Java 21 &amp; Cloud Firestore • Academic End-Semester Project</div>
                     <div class="footer-status"><span class="pulse-dot"></span> Backend: <span id="server-status">Connected</span></div>
                 </div>
@@ -273,10 +270,6 @@
                 <div class="form-group">
                     <label>Roster Players (Comma separated) *</label>
                     <textarea id="reg-players" class="input-field" rows="3" placeholder="Player1, Player2, Player3, Player4, Player5" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Team Security Password (Required for Modifications) *</label>
-                    <input type="password" id="reg-password" class="input-field" placeholder="Create strong team password (min 4 chars)" required minlength="4">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('modal-register')">Cancel</button>
@@ -366,7 +359,7 @@
         </div>
     </div>
 
-    <!-- MODAL: AUTH / SIGN IN (PROPERLY CLOSED & ACCESSIBLE) -->
+    <!-- MODAL: AUTH / SIGN IN -->
     <div class="modal" id="modal-auth">
         <div class="modal-backdrop" onclick="closeModal('modal-auth')"></div>
         <div class="modal-dialog">
@@ -384,7 +377,7 @@
                     <input type="password" id="auth-password" class="input-field" placeholder="admin123 or tenz123" required>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
-                    💡 Quick Demo Credentials:<br>
+                    [INFO] Quick Demo Credentials:<br>
                     • Organizer: <strong>admin</strong> / <strong>admin123</strong><br>
                     • Participant: <strong>tenz</strong> / <strong>tenz123</strong>
                 </div>

@@ -12,6 +12,7 @@ import javafx.scene.layout.*;
 import java.awt.Desktop;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 public class TournamentsView extends VBox {
     private final ApiClient apiClient;
@@ -34,12 +35,12 @@ public class TournamentsView extends VBox {
         guidanceBox.setAlignment(Pos.CENTER_LEFT);
         guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
                 "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
-        Label guideIcon = new Label("💡");
-        guideIcon.setStyle("-fx-font-size: 15px;");
+        Label guideIcon = new Label("[INFO]");
+        guideIcon.setStyle("-fx-font-size: 11px; -fx-font-weight: 900; -fx-text-fill: #ea580c;");
         VBox guideText = new VBox(2);
         Label guideTitle = new Label("TOURNAMENT SETUP & LIFECYCLE GUIDE");
         guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
-        Label guideDesc = new Label("Select any tournament to advance its status (Registration → Check-in → In Progress → Completed) or delete with one click.");
+        Label guideDesc = new Label("Select any tournament to advance its status or delete. Modifications require tournament security password once per session.");
         guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
         guideText.getChildren().addAll(guideTitle, guideDesc);
         guidanceBox.getChildren().addAll(guideIcon, guideText);
@@ -70,15 +71,15 @@ public class TournamentsView extends VBox {
         btnComplete.getStyleClass().add("btn-outline");
         btnComplete.setOnAction(e -> advanceStatus("COMPLETED"));
 
-        Button btnDelete = new Button("🗑️ Delete");
+        Button btnDelete = new Button("Delete");
         btnDelete.getStyleClass().add("btn-danger");
         btnDelete.setOnAction(e -> deleteSelectedTournament());
 
-        Button btnExport = new Button("📥 Export CSV");
+        Button btnExport = new Button("Export CSV");
         btnExport.getStyleClass().add("btn-cyan");
         btnExport.setOnAction(e -> exportCsv());
 
-        Button btnRefresh = new Button("↻ Refresh");
+        Button btnRefresh = new Button("Refresh");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> loadData());
 
@@ -114,16 +115,44 @@ public class TournamentsView extends VBox {
         colMax.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getMaxParticipants() + " Teams"));
         colMax.setPrefWidth(100);
 
+        TableColumn<TournamentDto, String> colAuth = new TableColumn<>("SESSION ACCESS");
+        colAuth.setCellValueFactory(c -> {
+            boolean unlocked = apiClient.isTournamentUnlocked(c.getValue().getId());
+            return new SimpleStringProperty(unlocked ? "[UNLOCKED]" : "[PROTECTED]");
+        });
+        colAuth.setPrefWidth(120);
+
         TableColumn<TournamentDto, String> colPub = new TableColumn<>("PUBLIC");
         colPub.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().isPublished() ? "YES" : "NO"));
-        colPub.setPrefWidth(90);
+        colPub.setPrefWidth(80);
 
-        tableView.getColumns().addAll(colName, colGame, colMode, colStatus, colMax, colPub);
+        tableView.getColumns().addAll(colName, colGame, colMode, colStatus, colMax, colAuth, colPub);
     }
 
     private void loadData() {
         List<TournamentDto> list = apiClient.getTournaments();
         tableView.setItems(FXCollections.observableArrayList(list));
+    }
+
+    private boolean ensureTournamentAuthorized(TournamentDto tournament) {
+        if (apiClient.isTournamentUnlocked(tournament.getId())) {
+            return true;
+        }
+        Optional<String> res = CyberAlert.showPasswordInput("Tournament Security",
+                "Password Required for '" + tournament.getName() + "'",
+                "Enter tournament master password (once per reload):");
+        if (res.isPresent()) {
+            boolean valid = apiClient.unlockTournamentWithPassword(tournament.getId(), res.get().trim());
+            if (valid) {
+                CyberAlert.showInfo("Access Granted", "Tournament '" + tournament.getName() + "' unlocked for this session.");
+                tableView.refresh();
+                return true;
+            } else {
+                CyberAlert.showError("Access Denied", "Incorrect password for tournament '" + tournament.getName() + "'.");
+                return false;
+            }
+        }
+        return false;
     }
 
     private void advanceStatus(String newStatus) {
@@ -133,9 +162,14 @@ public class TournamentsView extends VBox {
             return;
         }
 
+        if (!ensureTournamentAuthorized(selected)) {
+            return;
+        }
+
         boolean ok = apiClient.updateTournamentStatus(selected.getId(), newStatus);
         if (ok) {
             loadData();
+            CyberAlert.showInfo("Status Updated", "Tournament status changed to: " + newStatus);
         } else {
             showAlert("Failed to update status.");
         }
@@ -145,6 +179,10 @@ public class TournamentsView extends VBox {
         TournamentDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Please select a tournament from the table first.");
+            return;
+        }
+
+        if (!ensureTournamentAuthorized(selected)) {
             return;
         }
 
@@ -168,7 +206,6 @@ public class TournamentsView extends VBox {
             showAlert("Please select a tournament from the table first.");
             return;
         }
-        // Build CSV content in-memory from Firestore data
         StringBuilder sb = new StringBuilder();
         sb.append("Tournament ID,Name,Game,Mode,Status,Max Teams,Published\n");
         sb.append(String.join(",",
@@ -190,7 +227,7 @@ public class TournamentsView extends VBox {
     private void showCreateDialog() {
         Dialog<TournamentDto> dialog = new Dialog<>();
         dialog.setTitle("CREATE NEW ESPORTS TOURNAMENT");
-        dialog.setHeaderText("Configure tournament format, participant limit, and game mode.");
+        dialog.setHeaderText("Configure tournament format, participant limit, and tournament master password.");
 
         ButtonType btnCreateType = new ButtonType("Create Tournament", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(btnCreateType, ButtonType.CANCEL);
@@ -198,7 +235,7 @@ public class TournamentsView extends VBox {
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        grid.setPadding(new Insets(20));
 
         TextField txtName = new TextField();
         txtName.setPromptText("e.g. VALORANT APEX CHALLENGERS");
@@ -207,13 +244,12 @@ public class TournamentsView extends VBox {
         cmbGame.getItems().addAll(
                 "COUNTER-STRIKE 2",
                 "VALORANT",
-                "LEAGUE OF LEGENDS",
                 "DOTA 2",
-                "RAINBOW SIX SIEGE",
+                "APEX LEGENDS",
                 "BGMI",
-                "CALL OF DUTY: WARZONE",
                 "ROCKET LEAGUE",
-                "APEX LEGENDS"
+                "LEAGUE OF LEGENDS",
+                "RAINBOW SIX SIEGE"
         );
         cmbGame.setValue("COUNTER-STRIKE 2");
         cmbGame.setEditable(true);
@@ -223,6 +259,10 @@ public class TournamentsView extends VBox {
         cmbMode.setValue("SINGLE_ELIMINATION_TDM");
 
         TextField txtMax = new TextField("8");
+
+        PasswordField txtPass = new PasswordField();
+        txtPass.setPromptText("Default: ADMIN (Used to authorize edits)");
+
         TextArea txtRules = new TextArea("Standard competitive rules. Anti-cheat screen recording mandatory.");
         txtRules.setPrefRowCount(3);
 
@@ -234,11 +274,12 @@ public class TournamentsView extends VBox {
         grid.add(cmbMode, 1, 2);
         grid.add(new Label("Max Teams:"), 0, 3);
         grid.add(txtMax, 1, 3);
-        grid.add(new Label("Rules & Notes:"), 0, 4);
-        grid.add(txtRules, 1, 4);
+        grid.add(new Label("Tournament Password:"), 0, 4);
+        grid.add(txtPass, 1, 4);
+        grid.add(new Label("Rules & Notes:"), 0, 5);
+        grid.add(txtRules, 1, 5);
 
         dialog.getDialogPane().setContent(grid);
-
         CyberAlert.style(dialog);
 
         dialog.setResultConverter(dialogButton -> {
@@ -253,6 +294,8 @@ public class TournamentsView extends VBox {
                 } catch (NumberFormatException ignored) {
                     t.setMaxParticipants(8);
                 }
+                String pwd = txtPass.getText().trim();
+                t.setPassword(pwd.isEmpty() ? "ADMIN" : pwd);
                 t.setRules(txtRules.getText());
                 t.setPublished(true);
                 return t;

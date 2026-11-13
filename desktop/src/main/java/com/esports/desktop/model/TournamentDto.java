@@ -15,6 +15,7 @@ public class TournamentDto {
     private boolean published;
     private String rules;
     private String tournamentStartDate;
+    private String password = "ADMIN";
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -38,6 +39,8 @@ public class TournamentDto {
     public void setRules(String rules) { this.rules = rules; }
     public String getTournamentStartDate() { return tournamentStartDate; }
     public void setTournamentStartDate(String tournamentStartDate) { this.tournamentStartDate = tournamentStartDate; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     @Override
     public String toString() {
