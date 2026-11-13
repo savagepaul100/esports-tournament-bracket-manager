@@ -3,6 +3,8 @@ package com.esports.desktop;
 import com.esports.desktop.client.ApiClient;
 import com.esports.desktop.ui.*;
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -11,6 +13,9 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.awt.Desktop;
+import java.io.File;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,7 +23,8 @@ public class EsportsDesktopApplication extends Application {
     private ApiClient apiClient;
     private BorderPane rootLayout;
     private StackPane contentHolder;
-    private final Map<String, Node> viewCache = new HashMap<>();
+    private Label lblConnectionStatus;
+    private String currentViewKey = "dashboard";
     private final Map<String, Button> navButtons = new HashMap<>();
 
     @Override
@@ -28,6 +34,13 @@ public class EsportsDesktopApplication extends Application {
         rootLayout = new BorderPane();
         contentHolder = new StackPane();
 
+        // Check & auto-start backend if needed
+        ensureBackendRunning();
+
+        // Build Top Bar
+        HBox topBar = buildTopBar();
+        rootLayout.setTop(topBar);
+
         // Build Sidebar
         VBox sidebar = buildSidebar();
         rootLayout.setLeft(sidebar);
@@ -36,7 +49,8 @@ public class EsportsDesktopApplication extends Application {
         // Initial View: Dashboard
         switchView("dashboard");
 
-        Scene scene = new Scene(rootLayout, 1320, 820);
+        Scene scene = new Scene(rootLayout, 1340, 840);
+
         // Load Gamer Theme CSS
         String css = getClass().getResource("/styles/gamer-theme.css") != null
                 ? getClass().getResource("/styles/gamer-theme.css").toExternalForm()
@@ -47,21 +61,55 @@ public class EsportsDesktopApplication extends Application {
 
         primaryStage.setTitle("NEXUS ARENA | E-Sports Tournament & Bracket Manager");
         primaryStage.setScene(scene);
-        primaryStage.setMinWidth(1100);
-        primaryStage.setMinHeight(700);
+        primaryStage.setMinWidth(1120);
+        primaryStage.setMinHeight(720);
         primaryStage.show();
     }
 
+    private HBox buildTopBar() {
+        HBox topBar = new HBox(16);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+        topBar.getStyleClass().add("top-header-bar");
+
+        Label appBadge = new Label("ORGANIZER COMMAND SUITE");
+        appBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #94a3b8; -fx-font-size: 11px; -fx-letter-spacing: 1px;");
+
+        lblConnectionStatus = new Label("● CHECKING ENGINE...");
+        lblConnectionStatus.getStyleClass().addAll("badge-pill", "badge-amber-fx");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button btnCloudPortal = new Button("🌐 Live Cloud Portal (nexusarena-esports.web.app)");
+        btnCloudPortal.getStyleClass().add("btn-cyan");
+        btnCloudPortal.setOnAction(e -> openUrl("https://nexusarena-esports.web.app"));
+
+        Button btnLocalPortal = new Button("💻 Local Web");
+        btnLocalPortal.getStyleClass().add("btn-outline");
+        btnLocalPortal.setOnAction(e -> openUrl("http://localhost:8080"));
+
+        Button btnSync = new Button("↻ Sync Data");
+        btnSync.getStyleClass().add("btn-outline");
+        btnSync.setOnAction(e -> {
+            checkConnectionStatus();
+            switchView(currentViewKey);
+        });
+
+        topBar.getChildren().addAll(appBadge, lblConnectionStatus, spacer, btnCloudPortal, btnLocalPortal, btnSync);
+        return topBar;
+    }
+
     private VBox buildSidebar() {
-        VBox sidebar = new VBox(8);
-        sidebar.setPrefWidth(240);
+        VBox sidebar = new VBox(10);
+        sidebar.setPrefWidth(250);
         sidebar.getStyleClass().add("sidebar");
 
         // Brand Logo
-        HBox brandBox = new HBox(6);
+        HBox brandBox = new HBox(8);
         brandBox.setAlignment(Pos.CENTER_LEFT);
+        brandBox.setStyle("-fx-padding: 0 0 16 6;");
         Label icon = new Label("⚡");
-        icon.setStyle("-fx-font-size: 20px; -fx-text-fill: #00f0ff;");
+        icon.setStyle("-fx-font-size: 24px; -fx-text-fill: #00f0ff;");
         Label brand = new Label("NEXUS ");
         brand.getStyleClass().add("brand-label");
         Label brandAccent = new Label("ARENA");
@@ -70,24 +118,30 @@ public class EsportsDesktopApplication extends Application {
 
         VBox navGroup = new VBox(4);
         navGroup.getChildren().addAll(
-                createNavButton("📊  Dashboard", "dashboard"),
-                createNavButton("🏆  Tournaments", "tournaments"),
-                createNavButton("👥  Teams & Check-in", "teams"),
-                createNavButton("⚡  Live Bracket", "bracket"),
+                createNavButton("📊  Command Dashboard", "dashboard"),
+                createNavButton("🏆  Tournament Setup", "tournaments"),
+                createNavButton("👥  Teams & Rosters", "teams"),
+                createNavButton("⚡  Interactive Bracket", "bracket"),
                 createNavButton("🎮  Match Operations", "matches"),
                 createNavButton("🛡️  Disputes & Integrity", "disputes"),
-                createNavButton("📜  Audit Trail", "audit")
+                createNavButton("📜  Audit Log Trail", "audit")
         );
         VBox.setVgrow(navGroup, Priority.ALWAYS);
 
         // Organizer Profile Box
-        VBox profileBox = new VBox(4);
-        profileBox.setStyle("-fx-background-color: #131929; -fx-padding: 12; -fx-background-radius: 8; -fx-border-color: rgba(255,255,255,0.06); -fx-border-radius: 8;");
-        Label userGamerTag = new Label(apiClient.getCurrentUser().getGamerTag());
-        userGamerTag.setStyle("-fx-font-weight: bold; -fx-text-fill: #00ff9d; -fx-font-size: 13px;");
-        Label userRole = new Label("ROLE: " + apiClient.getCurrentUser().getRole());
-        userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8;");
-        profileBox.getChildren().addAll(userGamerTag, userRole);
+        VBox profileBox = new VBox(6);
+        profileBox.setStyle("-fx-background-color: #0e1424; -fx-padding: 14; -fx-background-radius: 10; -fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 10;");
+        
+        Label userGamerTag = new Label("⚡ " + apiClient.getCurrentUser().getGamerTag());
+        userGamerTag.setStyle("-fx-font-weight: 800; -fx-text-fill: #00ff9d; -fx-font-size: 13px;");
+        
+        Label userRole = new Label("ROLE: ORGANIZER / ADMIN");
+        userRole.setStyle("-fx-font-size: 10px; -fx-text-fill: #94a3b8; -fx-font-weight: bold;");
+
+        Label cloudStatus = new Label("🔥 Cloud: Google Firestore");
+        cloudStatus.setStyle("-fx-font-size: 10px; -fx-text-fill: #00f0ff;");
+
+        profileBox.getChildren().addAll(userGamerTag, userRole, cloudStatus);
 
         sidebar.getChildren().addAll(brandBox, navGroup, profileBox);
         return sidebar;
@@ -103,6 +157,7 @@ public class EsportsDesktopApplication extends Application {
     }
 
     private void switchView(String viewKey) {
+        this.currentViewKey = viewKey;
         // Highlight active nav button
         for (Map.Entry<String, Button> entry : navButtons.entrySet()) {
             if (entry.getKey().equals(viewKey)) {
@@ -125,6 +180,92 @@ public class EsportsDesktopApplication extends Application {
 
         contentHolder.getChildren().clear();
         contentHolder.getChildren().add(view);
+    }
+
+    private void ensureBackendRunning() {
+        Thread thread = new Thread(() -> {
+            if (apiClient.isBackendAlive()) {
+                updateConnectionUi(true);
+                return;
+            }
+
+            // Attempt to launch backend jar
+            try {
+                File jar = findBackendJar();
+                if (jar != null && jar.exists()) {
+                    Platform.runLater(() -> {
+                        if (lblConnectionStatus != null) {
+                            lblConnectionStatus.setText("⏳ STARTING BACKEND ENGINE...");
+                            lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-amber-fx");
+                        }
+                    });
+
+                    ProcessBuilder pb = new ProcessBuilder("java", "-jar", jar.getAbsolutePath());
+                    pb.directory(jar.getParentFile());
+                    pb.start();
+
+                    // Poll for up to 15 seconds
+                    for (int i = 0; i < 15; i++) {
+                        Thread.sleep(1000);
+                        if (apiClient.isBackendAlive()) {
+                            updateConnectionUi(true);
+                            Platform.runLater(() -> switchView(currentViewKey));
+                            return;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            updateConnectionUi(apiClient.isBackendAlive());
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void checkConnectionStatus() {
+        new Thread(() -> {
+            boolean alive = apiClient.isBackendAlive();
+            updateConnectionUi(alive);
+        }).start();
+    }
+
+    private void updateConnectionUi(boolean isAlive) {
+        Platform.runLater(() -> {
+            if (lblConnectionStatus == null) return;
+            if (isAlive) {
+                lblConnectionStatus.setText("● ENGINE & FIRESTORE ONLINE (Port 8080)");
+                lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-green-fx");
+            } else {
+                lblConnectionStatus.setText("⚠️ BACKEND DISCONNECTED (Click Sync to Retry)");
+                lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-live-fx");
+            }
+        });
+    }
+
+    private File findBackendJar() {
+        String[] possiblePaths = {
+                "backend-1.0.0.jar",
+                "backend/target/backend-1.0.0.jar",
+                "../backend/target/backend-1.0.0.jar",
+                "target/backend-1.0.0.jar"
+        };
+        for (String path : possiblePaths) {
+            File f = new File(path);
+            if (f.exists()) return f;
+        }
+        return null;
+    }
+
+    private void openUrl(String url) {
+        try {
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(new URI(url));
+            }
+        } catch (Exception e) {
+            CyberAlert.showInfo("Open Browser", "Please navigate to: " + url);
+        }
     }
 
     public static void main(String[] args) {

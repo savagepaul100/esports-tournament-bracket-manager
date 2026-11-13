@@ -81,23 +81,21 @@ public class BracketView extends VBox {
     private void generateBracket() {
         TournamentDto selected = cmbTournament.getValue();
         if (selected == null) {
-            showAlert("Please select a tournament first.");
+            CyberAlert.showInfo("Interactive Bracket", "Please select a tournament first.");
             return;
         }
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Confirm Bracket Generation");
-        confirm.setHeaderText("Generate single-elimination bracket for " + selected.getName() + "?");
-        confirm.setContentText("This will calculate power-of-two slots, assign BYEs for unseeded teams, and link round matches.");
+        boolean confirmed = CyberAlert.showConfirm("Bracket Generation",
+                "Generate single-elimination bracket for " + selected.getName() + "?",
+                "This will calculate power-of-two slots, seed bye matches if needed, and initialize round progression.");
 
-        Optional<ButtonType> res = confirm.showAndWait();
-        if (res.isPresent() && res.get() == ButtonType.OK) {
+        if (confirmed) {
             List<MatchDto> matches = apiClient.generateBracket(selected.getId());
             if (!matches.isEmpty()) {
-                showAlert("Bracket successfully generated with " + matches.size() + " matches!");
+                CyberAlert.showInfo("Bracket Generated", "Bracket generated with " + matches.size() + " matches! Cloud Firestore updated.");
                 loadBracket();
             } else {
-                showAlert("Could not generate bracket. Ensure at least 2 approved teams exist.");
+                CyberAlert.showError("Generation Failed", "Could not generate bracket. Ensure at least 2 approved teams exist.");
             }
         }
     }
@@ -223,6 +221,7 @@ public class BracketView extends VBox {
         grid.add(txtReason, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(response -> {
             if (response == btnSave) {
@@ -231,22 +230,19 @@ public class BracketView extends VBox {
                     int sB = Integer.parseInt(txtScoreB.getText());
                     boolean ok = apiClient.recordMatchScore(match.getId(), sA, sB, txtReason.getText());
                     if (ok) {
+                        CyberAlert.showInfo("Score Recorded", "Match score updated and winner advanced in bracket!");
                         loadBracket();
                     } else {
-                        showAlert("Failed to record score. Note that matches cannot end in a draw in single-elimination.");
+                        CyberAlert.showError("Score Error", "Failed to record score. Note that matches cannot end in a draw in single-elimination.");
                     }
                 } catch (NumberFormatException ex) {
-                    showAlert("Please enter valid numeric scores.");
+                    CyberAlert.showError("Input Error", "Please enter valid numeric scores.");
                 }
             }
         });
     }
 
     private void showAlert(String msg) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Nexus Arena Organizer");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        CyberAlert.showInfo("Bracket Operations", msg);
     }
 }

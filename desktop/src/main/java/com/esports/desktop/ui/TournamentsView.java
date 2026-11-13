@@ -177,6 +177,8 @@ public class TournamentsView extends VBox {
 
         dialog.getDialogPane().setContent(grid);
 
+        CyberAlert.style(dialog);
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == btnCreateType) {
                 TournamentDto t = new TournamentDto();
@@ -199,17 +201,14 @@ public class TournamentsView extends VBox {
             TournamentDto created = apiClient.createTournament(newTournament);
             if (created != null) {
                 loadData();
+                CyberAlert.showInfo("Tournament Created", "Tournament '" + created.getName() + "' is now live and synchronized with Cloud Firestore!");
             } else {
-                showAlert("Failed to create tournament.");
+                CyberAlert.showError("Creation Failed", "Could not create tournament. Verify backend engine connection.");
             }
         });
     }
 
     private void showAlert(String msg) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Nexus Arena Organizer");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        CyberAlert.showInfo("Tournament Operations", msg);
     }
 }

@@ -168,6 +168,7 @@ public class MatchesView extends VBox {
         grid.add(txtReason, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(res -> {
             if (res == btnConfirm) {
@@ -175,17 +176,18 @@ public class MatchesView extends VBox {
                     int sA = Integer.parseInt(txtScoreA.getText());
                     int sB = Integer.parseInt(txtScoreB.getText());
                     if (sA == sB) {
-                        showAlert("Single-elimination match cannot end in a draw.");
+                        CyberAlert.showError("Draw Not Allowed", "Single-elimination match cannot end in a draw.");
                         return;
                     }
                     boolean ok = apiClient.recordMatchScore(selected.getId(), sA, sB, txtReason.getText());
                     if (ok) {
+                        CyberAlert.showInfo("Score Recorded", "Match score updated and synchronized with Cloud Firestore!");
                         loadMatches();
                     } else {
-                        showAlert("Error recording score.");
+                        CyberAlert.showError("Score Error", "Failed to record score.");
                     }
                 } catch (NumberFormatException ex) {
-                    showAlert("Scores must be valid numbers.");
+                    CyberAlert.showError("Input Error", "Scores must be valid numbers.");
                 }
             }
         });
@@ -194,7 +196,7 @@ public class MatchesView extends VBox {
     private void showScheduleDialog() {
         MatchDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Please select a match from the table first.");
+            CyberAlert.showInfo("Match Operations", "Please select a match from the table first.");
             return;
         }
 
@@ -225,24 +227,22 @@ public class MatchesView extends VBox {
         grid.add(txtMap, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(res -> {
             if (res == btnSave) {
                 boolean ok = apiClient.updateMatchSchedule(selected.getId(), txtTime.getText(), txtRoom.getText(), txtPass.getText(), txtMap.getText());
                 if (ok) {
+                    CyberAlert.showInfo("Schedule Saved", "Lobby room credentials published to tournament participants & web portal.");
                     loadMatches();
                 } else {
-                    showAlert("Failed to update match schedule.");
+                    CyberAlert.showError("Schedule Error", "Failed to update match schedule.");
                 }
             }
         });
     }
 
     private void showAlert(String msg) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Nexus Arena Organizer");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        CyberAlert.showInfo("Match Operations", msg);
     }
 }

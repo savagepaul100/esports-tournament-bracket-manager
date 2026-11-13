@@ -77,19 +77,19 @@ public class DashboardView extends VBox {
         btnNewTournament.getStyleClass().add("btn-primary");
         btnNewTournament.setOnAction(e -> onNavigateToTournaments.run());
 
-        Button btnOpenPortal = new Button("🌐 Open Public Website");
+        Button btnOpenPortal = new Button("🌐 Live Cloud Portal (nexusarena-esports.web.app)");
         btnOpenPortal.getStyleClass().add("btn-cyan");
         btnOpenPortal.setOnAction(e -> {
             try {
                 if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                    Desktop.getDesktop().browse(new URI("http://localhost:8080"));
+                    Desktop.getDesktop().browse(new URI("https://nexusarena-esports.web.app"));
                 }
             } catch (Exception ex) {
-                ex.printStackTrace();
+                CyberAlert.showInfo("Cloud Portal", "Visit: https://nexusarena-esports.web.app");
             }
         });
 
-        Button btnRefresh = new Button("↻ Refresh Data");
+        Button btnRefresh = new Button("↻ Sync Data");
         btnRefresh.getStyleClass().add("btn-outline");
         btnRefresh.setOnAction(e -> initView());
 

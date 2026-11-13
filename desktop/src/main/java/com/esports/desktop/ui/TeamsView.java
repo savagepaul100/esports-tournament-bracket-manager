@@ -132,12 +132,15 @@ public class TeamsView extends VBox {
         dialog.setHeaderText("Set registration status to " + status + " for " + selected.getName());
         dialog.setContentText("Reason or notes for captain:");
 
+        CyberAlert.style(dialog);
+
         dialog.showAndWait().ifPresent(reason -> {
             boolean ok = apiClient.updateTeamStatus(selected.getId(), status, reason);
             if (ok) {
+                CyberAlert.showInfo("Status Updated", "Team status updated to " + status + " and synced to Cloud Firestore.");
                 loadTeams();
             } else {
-                showAlert("Failed to update team registration status.");
+                CyberAlert.showError("Update Error", "Failed to update team registration status.");
             }
         });
     }
@@ -145,24 +148,21 @@ public class TeamsView extends VBox {
     private void toggleCheckIn() {
         TeamDto selected = tableView.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Please select a team from the table first.");
+            CyberAlert.showInfo("Teams", "Please select a team from the table first.");
             return;
         }
 
         boolean newCheckIn = !selected.isCheckedIn();
         boolean ok = apiClient.setTeamCheckIn(selected.getId(), newCheckIn);
         if (ok) {
+            CyberAlert.showInfo("Check-In Updated", selected.getName() + " check-in marked as: " + (newCheckIn ? "READY" : "PENDING"));
             loadTeams();
         } else {
-            showAlert("Failed to update check-in status.");
+            CyberAlert.showError("Update Error", "Failed to update check-in status.");
         }
     }
 
     private void showAlert(String msg) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Nexus Arena Organizer");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        CyberAlert.showInfo("Team Operations", msg);
     }
 }

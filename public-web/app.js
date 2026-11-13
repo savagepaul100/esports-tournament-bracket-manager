@@ -1,6 +1,29 @@
 /**
  * NEXUS ARENA - Public Portal Frontend Engine
+ * Powered by Firebase Cloud Firestore & Spring Boot REST API
  */
+
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB3JO7IRHCdWEHvW5TTf1sNsCdyuoLs1IU",
+    authDomain: "nexusarena-esports.firebaseapp.com",
+    projectId: "nexusarena-esports",
+    storageBucket: "nexusarena-esports.firebasestorage.app",
+    messagingSenderId: "699674120198",
+    appId: "1:699674120198:web:0a253d20dfdec870563387"
+};
+
+let db = null;
+if (typeof firebase !== 'undefined') {
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        db = firebase.firestore();
+        console.log("🔥 Initialized Firebase Cloud Firestore for Nexus Arena.");
+    } catch (e) {
+        console.warn("Could not init Firebase SDK:", e);
+    }
+}
 
 const API_BASE = window.location.origin;
 
@@ -9,6 +32,7 @@ let currentTournament = null;
 let currentMatches = [];
 let currentTeams = [];
 let activeGameFilter = 'ALL';
+let unsubscribeMatches = null;
 
 // DOM Elements
 const tournamentSelect = document.getElementById('tournament-select');
@@ -36,12 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModals();
     loadTournaments();
 
-    // Live sync polling every 4 seconds
+    // Live sync polling every 5 seconds (safety fallback)
     setInterval(() => {
         if (currentTournament) {
             refreshTournamentData(false);
         }
-    }, 4000);
+    }, 5000);
 });
 
 function setupNavigation() {
@@ -117,24 +141,51 @@ function setupFilters() {
 }
 
 // ==========================================
-// DATA FETCHING
+// DATA FETCHING (Cloud Firestore & REST)
 // ==========================================
 async function loadTournaments() {
+    if (db) {
+        try {
+            const snap = await db.collection('tournaments').get();
+            const list = [];
+            snap.forEach(doc => {
+                const data = doc.data();
+                data.id = doc.id;
+                list.push(data);
+            });
+            if (list.length > 0) {
+                allTournaments = list;
+                populateTournamentSelector();
+                renderTournamentsList();
+                if (!currentTournament) {
+                    selectTournament(allTournaments[0].id);
+                }
+                const sEl = document.getElementById('server-status');
+                if (sEl) sEl.textContent = 'Cloud Firestore Live (Synced)';
+                return;
+            }
+        } catch (e) {
+            console.warn("Firestore direct load failed, falling back to REST:", e);
+        }
+    }
+
     try {
         const res = await fetch(`${API_BASE}/api/tournaments`);
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.data) {
             allTournaments = json.data;
             populateTournamentSelector();
             renderTournamentsList();
 
-            if (allTournaments.length > 0) {
+            if (allTournaments.length > 0 && !currentTournament) {
                 selectTournament(allTournaments[0].id);
             }
+            const sEl = document.getElementById('server-status');
+            if (sEl) sEl.textContent = 'Connected (REST API)';
         }
     } catch (err) {
         console.error('Failed to load tournaments:', err);
-        showToast('Error connecting to backend API', 'error');
+        showToast('Connecting to Nexus Arena cloud...', 'info');
     }
 }
 
@@ -145,10 +196,79 @@ async function selectTournament(tournamentId) {
     tournamentSelect.value = tournamentId;
     updateHeroBanner();
     await refreshTournamentData(false);
+
+    // Setup real-time listener for current tournament matches
+    if (db) {
+        if (unsubscribeMatches) unsubscribeMatches();
+        unsubscribeMatches = db.collection('matches')
+            .where('tournamentId', '==', tournamentId)
+            .onSnapshot(snap => {
+                const list = [];
+                snap.forEach(d => {
+                    const item = d.data();
+                    item.id = d.id;
+                    list.push(item);
+                });
+                currentMatches = list;
+                heroMatchesCount.textContent = currentMatches.length;
+                renderBracket();
+                renderStandings();
+                renderMatchesSchedule();
+            }, err => {
+                console.warn('Real-time match listener warning:', err);
+            });
+    }
 }
 
 async function refreshTournamentData(showNotice = false) {
     if (!currentTournament) return;
+
+    if (db) {
+        try {
+            const [tDoc, mSnap, tmSnap] = await Promise.all([
+                db.collection('tournaments').doc(currentTournament.id).get(),
+                db.collection('matches').where('tournamentId', '==', currentTournament.id).get(),
+                db.collection('teams').where('tournamentId', '==', currentTournament.id).get()
+            ]);
+
+            if (tDoc.exists) {
+                const d = tDoc.data();
+                d.id = tDoc.id;
+                currentTournament = d;
+            }
+
+            const mList = [];
+            mSnap.forEach(doc => {
+                const item = doc.data();
+                item.id = doc.id;
+                mList.push(item);
+            });
+            currentMatches = mList;
+
+            const tmList = [];
+            tmSnap.forEach(doc => {
+                const item = doc.data();
+                item.id = doc.id;
+                tmList.push(item);
+            });
+            currentTeams = tmList;
+
+            updateHeroBanner();
+            renderBracket();
+            renderStandings();
+            renderMatchesSchedule();
+            renderTeams();
+            populateDisputeSelect();
+
+            if (showNotice) {
+                showToast('Synchronized with Cloud Firestore!');
+            }
+            return;
+        } catch (e) {
+            console.warn("Firestore refresh failed, fallback to REST:", e);
+        }
+    }
+
     try {
         const [tRes, mRes, tmRes] = await Promise.all([
             fetch(`${API_BASE}/api/tournaments/${currentTournament.id}`).then(r => r.json()),
@@ -490,6 +610,24 @@ function setupModals() {
                 playerNames
             };
 
+            if (db) {
+                try {
+                    const teamId = 'tm-' + Math.random().toString(36).substring(2, 9);
+                    payload.id = teamId;
+                    payload.checkedIn = true;
+                    payload.seed = currentTeams.length + 1;
+                    payload.registrationStatus = 'APPROVED';
+                    await db.collection('teams').doc(teamId).set(payload);
+                    showToast('Team registered successfully in Cloud Firestore!');
+                    closeModal('modal-register');
+                    regForm.reset();
+                    await refreshTournamentData(false);
+                    return;
+                } catch (err) {
+                    console.warn('Firestore team registration fallback to REST:', err);
+                }
+            }
+
             try {
                 const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/teams`, {
                     method: 'POST',
@@ -529,6 +667,23 @@ function setupModals() {
                 reason,
                 evidenceUrl
             };
+
+            if (db) {
+                try {
+                    const dispId = 'disp-' + Math.random().toString(36).substring(2, 8);
+                    payload.id = dispId;
+                    payload.status = 'UNDER_REVIEW';
+                    payload.createdAt = new Date().toISOString();
+                    await db.collection('disputes').doc(dispId).set(payload);
+                    showToast('Dispute filed to Cloud Firestore! Organizer alerted.');
+                    closeModal('modal-dispute');
+                    dispForm.reset();
+                    await refreshTournamentData(false);
+                    return;
+                } catch (err) {
+                    console.warn('Firestore dispute fallback to REST:', err);
+                }
+            }
 
             try {
                 const res = await fetch(`${API_BASE}/api/tournaments/${currentTournament.id}/disputes`, {
@@ -572,6 +727,23 @@ function setupModals() {
                 evidenceUrl
             };
 
+            if (db) {
+                try {
+                    const repId = 'rep-' + Math.random().toString(36).substring(2, 8);
+                    payload.id = repId;
+                    payload.status = 'SUBMITTED';
+                    payload.moderationAction = 'NONE';
+                    payload.createdAt = new Date().toISOString();
+                    await db.collection('conduct_reports').doc(repId).set(payload);
+                    showToast('Report submitted to Cloud Firestore for fair-play investigation.');
+                    closeModal('modal-report');
+                    repForm.reset();
+                    return;
+                } catch (err) {
+                    console.warn('Firestore report fallback to REST:', err);
+                }
+            }
+
             try {
                 const res = await fetch(`${API_BASE}/api/tournaments/${currentTournament.id}/conduct-reports`, {
                     method: 'POST',
@@ -599,6 +771,29 @@ function setupModals() {
             e.preventDefault();
             const username = document.getElementById('auth-username').value;
             const password = document.getElementById('auth-password').value;
+
+            if (db) {
+                try {
+                    const q = await db.collection('users').where('username', '==', username).limit(1).get();
+                    if (!q.empty) {
+                        const userData = q.docs[0].data();
+                        userData.id = q.docs[0].id;
+                        if (userData.password === password) {
+                            localStorage.setItem('nexus_user', JSON.stringify(userData));
+                            const userBtn = document.getElementById('btn-user-action');
+                            if (userBtn) {
+                                userBtn.textContent = userData.username + ' (' + userData.role + ')';
+                            }
+                            showToast('Welcome back, ' + userData.username + ' (Cloud Authenticated)!');
+                            closeModal('modal-auth');
+                            authForm.reset();
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Firestore auth fallback to REST:', err);
+                }
+            }
 
             try {
                 const res = await fetch(`${API_BASE}/api/auth/login`, {

@@ -1,32 +1,38 @@
-/* NEXUS ARENA - JavaFX Gamer UI Theme */
+/* ==========================================================================
+   NEXUS ARENA - High-Performance Cyberpunk Gamer UI Theme
+   Matches Public Portal Web Design & Aesthetic
+   ========================================================================== */
 
 .root {
-    -fx-base: #090c14;
-    -fx-background-color: #090c14;
+    -fx-base: #080b13;
+    -fx-background-color: #080b13;
     -fx-focus-color: #00f0ff;
     -fx-faint-focus-color: transparent;
-    -fx-font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    -fx-font-family: 'Segoe UI', 'Chakra Petch', -apple-system, sans-serif;
     -fx-font-size: 13px;
     -fx-text-fill: #f1f5f9;
 }
 
-/* Sidebar */
+/* ==========================================================================
+   WINDOW & SIDEBAR
+   ========================================================================== */
 .sidebar {
-    -fx-background-color: #0f1422;
-    -fx-border-color: transparent rgba(255, 255, 255, 0.08) transparent transparent;
+    -fx-background-color: #0b101d;
+    -fx-border-color: transparent rgba(0, 240, 255, 0.15) transparent transparent;
     -fx-border-width: 0 1 0 0;
-    -fx-padding: 18 12;
+    -fx-padding: 20 14;
 }
 
 .brand-label {
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
+    -fx-font-size: 21px;
+    -fx-font-weight: 800;
     -fx-text-fill: #ffffff;
-    -fx-padding: 0 0 15 8;
+    -fx-letter-spacing: 1px;
 }
 
 .brand-accent {
     -fx-text-fill: #00f0ff;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.6), 10, 0, 0, 0);
 }
 
 .nav-button {
@@ -35,9 +41,10 @@
     -fx-font-size: 13px;
     -fx-font-weight: 600;
     -fx-alignment: BASELINE_LEFT;
-    -fx-padding: 10 14;
+    -fx-padding: 11 16;
     -fx-background-radius: 8;
     -fx-cursor: hand;
+    -fx-transition: all 0.2s;
 }
 
 .nav-button:hover {
@@ -49,150 +56,165 @@
     -fx-background-color: rgba(0, 240, 255, 0.12);
     -fx-text-fill: #00f0ff;
     -fx-border-color: transparent transparent transparent #00f0ff;
-    -fx-border-width: 0 0 0 3;
+    -fx-border-width: 0 0 0 3.5;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.2), 8, 0, 0, 0);
 }
 
-/* Main Content Area */
+/* Top App Header Bar */
+.top-header-bar {
+    -fx-background-color: #0b101d;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.08) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 24;
+}
+
+/* ==========================================================================
+   CONTENT AREA & TYPOGRAPHY
+   ========================================================================== */
 .content-area {
-    -fx-background-color: #090c14;
+    -fx-background-color: #080b13;
     -fx-padding: 24;
 }
 
 .view-title {
     -fx-font-size: 22px;
-    -fx-font-weight: bold;
+    -fx-font-weight: 800;
     -fx-text-fill: #ffffff;
+    -fx-letter-spacing: 0.5px;
 }
 
 .view-subtitle {
     -fx-font-size: 13px;
     -fx-text-fill: #64748b;
-    -fx-padding: 0 0 15 0;
+    -fx-padding: 0 0 16 0;
 }
 
-/* Stat Cards */
+/* ==========================================================================
+   STAT CARDS & PANELS
+   ========================================================================== */
 .stat-card {
-    -fx-background-color: #131929;
-    -fx-background-radius: 10;
-    -fx-border-color: rgba(255, 255, 255, 0.07);
-    -fx-border-radius: 10;
-    -fx-border-width: 1;
-    -fx-padding: 16;
-}
-
-.stat-value {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
-}
-
-.stat-title {
-    -fx-font-size: 12px;
-    -fx-text-fill: #94a3b8;
-    -fx-font-weight: 600;
-}
-
-/* Buttons */
-.btn-primary {
-    -fx-background-color: linear-gradient(to bottom right, #8b5cf6, #6d28d9);
-    -fx-text-fill: #ffffff;
-    -fx-font-weight: bold;
-    -fx-padding: 8 18;
-    -fx-background-radius: 6;
-    -fx-cursor: hand;
-}
-
-.btn-primary:hover {
-    -fx-background-color: linear-gradient(to bottom right, #9d74f8, #7c3aed);
-}
-
-.btn-cyan {
-    -fx-background-color: #00f0ff;
-    -fx-text-fill: #080a11;
-    -fx-font-weight: bold;
-    -fx-padding: 8 18;
-    -fx-background-radius: 6;
-    -fx-cursor: hand;
-}
-
-.btn-cyan:hover {
-    -fx-background-color: #38f4ff;
-}
-
-.btn-outline {
-    -fx-background-color: transparent;
-    -fx-border-color: rgba(255, 255, 255, 0.15);
-    -fx-border-radius: 6;
-    -fx-border-width: 1;
-    -fx-text-fill: #e2e8f0;
-    -fx-font-weight: 600;
-    -fx-padding: 7 16;
-    -fx-cursor: hand;
-}
-
-.btn-outline:hover {
-    -fx-border-color: #8b5cf6;
-    -fx-text-fill: #8b5cf6;
-    -fx-background-color: rgba(139, 92, 246, 0.08);
-}
-
-.btn-danger {
-    -fx-background-color: rgba(239, 68, 68, 0.15);
-    -fx-border-color: rgba(239, 68, 68, 0.4);
-    -fx-border-radius: 6;
-    -fx-text-fill: #ef4444;
-    -fx-font-weight: bold;
-    -fx-padding: 7 16;
-    -fx-cursor: hand;
-}
-
-.btn-danger:hover {
-    -fx-background-color: rgba(239, 68, 68, 0.3);
-}
-
-.btn-success {
-    -fx-background-color: rgba(16, 185, 129, 0.15);
-    -fx-border-color: rgba(16, 185, 129, 0.4);
-    -fx-border-radius: 6;
-    -fx-text-fill: #10b981;
-    -fx-font-weight: bold;
-    -fx-padding: 7 16;
-    -fx-cursor: hand;
-}
-
-.btn-success:hover {
-    -fx-background-color: rgba(16, 185, 129, 0.3);
-}
-
-/* Cards & Containers */
-.card-panel {
-    -fx-background-color: #121726;
-    -fx-background-radius: 10;
-    -fx-border-color: rgba(255, 255, 255, 0.07);
-    -fx-border-radius: 10;
+    -fx-background-color: #0e1424;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-padding: 18;
 }
 
-/* Bracket Match Card */
-.bracket-match-node {
-    -fx-background-color: #151b2c;
-    -fx-background-radius: 8;
-    -fx-border-color: rgba(255, 255, 255, 0.09);
-    -fx-border-radius: 8;
+.stat-card:hover {
+    -fx-background-color: #131b30;
+    -fx-border-color: rgba(0, 240, 255, 0.35);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.15), 14, 0, 0, 0);
+}
+
+.stat-value {
+    -fx-font-size: 30px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #ffffff;
+}
+
+.stat-title {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 700;
+    -fx-letter-spacing: 0.8px;
+}
+
+.card-panel {
+    -fx-background-color: #0e1424;
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 12;
     -fx-border-width: 1;
-    -fx-padding: 10;
+    -fx-padding: 20;
 }
 
-.bracket-match-node:hover {
-    -fx-border-color: #8b5cf6;
+/* ==========================================================================
+   BUTTONS (CYBERPUNK NEON GLOWS)
+   ========================================================================== */
+.btn-primary {
+    -fx-background-color: linear-gradient(to bottom right, #8b5cf6, #6d28d9);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-padding: 9 20;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.35), 8, 0, 0, 2);
 }
 
-.bracket-match-node.live {
-    -fx-border-color: #ff3366;
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to bottom right, #9d74f8, #7c3aed);
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.6), 14, 0, 0, 2);
 }
 
-/* Badges */
+.btn-cyan {
+    -fx-background-color: #00f0ff;
+    -fx-text-fill: #060911;
+    -fx-font-weight: 800;
+    -fx-padding: 9 20;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.45), 10, 0, 0, 2);
+}
+
+.btn-cyan:hover {
+    -fx-background-color: #38f4ff;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.75), 16, 0, 0, 2);
+}
+
+.btn-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(255, 255, 255, 0.18);
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-text-fill: #e2e8f0;
+    -fx-font-weight: 600;
+    -fx-padding: 8 18;
+    -fx-cursor: hand;
+}
+
+.btn-outline:hover {
+    -fx-border-color: #00f0ff;
+    -fx-text-fill: #00f0ff;
+    -fx-background-color: rgba(0, 240, 255, 0.08);
+}
+
+.btn-danger {
+    -fx-background-color: rgba(255, 51, 102, 0.15);
+    -fx-border-color: rgba(255, 51, 102, 0.5);
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-text-fill: #ff3366;
+    -fx-font-weight: bold;
+    -fx-padding: 8 18;
+    -fx-cursor: hand;
+}
+
+.btn-danger:hover {
+    -fx-background-color: rgba(255, 51, 102, 0.3);
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 102, 0.4), 10, 0, 0, 0);
+}
+
+.btn-success {
+    -fx-background-color: rgba(0, 255, 157, 0.15);
+    -fx-border-color: rgba(0, 255, 157, 0.5);
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-text-fill: #00ff9d;
+    -fx-font-weight: bold;
+    -fx-padding: 8 18;
+    -fx-cursor: hand;
+}
+
+.btn-success:hover {
+    -fx-background-color: rgba(0, 255, 157, 0.28);
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 255, 157, 0.4), 10, 0, 0, 0);
+}
+
+/* ==========================================
+   BADGES (CYBER PILLS)
+   ========================================== */
 .badge-pill {
     -fx-background-radius: 4;
     -fx-padding: 3 8;
@@ -201,87 +223,251 @@
 }
 
 .badge-live-fx {
-    -fx-background-color: rgba(255, 51, 102, 0.18);
+    -fx-background-color: rgba(255, 51, 102, 0.2);
     -fx-text-fill: #ff3366;
-    -fx-border-color: rgba(255, 51, 102, 0.4);
+    -fx-border-color: rgba(255, 51, 102, 0.5);
     -fx-border-radius: 4;
+    -fx-border-width: 1;
 }
 
 .badge-purple-fx {
-    -fx-background-color: rgba(139, 92, 246, 0.18);
+    -fx-background-color: rgba(139, 92, 246, 0.2);
     -fx-text-fill: #a78bfa;
-    -fx-border-color: rgba(139, 92, 246, 0.4);
+    -fx-border-color: rgba(139, 92, 246, 0.5);
     -fx-border-radius: 4;
+    -fx-border-width: 1;
 }
 
 .badge-green-fx {
-    -fx-background-color: rgba(0, 255, 157, 0.15);
+    -fx-background-color: rgba(0, 255, 157, 0.18);
     -fx-text-fill: #00ff9d;
-    -fx-border-color: rgba(0, 255, 157, 0.4);
+    -fx-border-color: rgba(0, 255, 157, 0.5);
     -fx-border-radius: 4;
+    -fx-border-width: 1;
 }
 
-/* Form Controls */
-.text-field, .text-area, .combo-box {
-    -fx-background-color: #0c0f18;
+.badge-cyan-fx {
+    -fx-background-color: rgba(0, 240, 255, 0.18);
+    -fx-text-fill: #00f0ff;
+    -fx-border-color: rgba(0, 240, 255, 0.5);
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+}
+
+.badge-amber-fx {
+    -fx-background-color: rgba(251, 191, 36, 0.18);
+    -fx-text-fill: #fbbf24;
+    -fx-border-color: rgba(251, 191, 36, 0.5);
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+}
+
+/* ==========================================
+   BRACKET MATCH CARD
+   ========================================== */
+.bracket-match-node {
+    -fx-background-color: #0f1525;
+    -fx-background-radius: 9;
     -fx-border-color: rgba(255, 255, 255, 0.1);
-    -fx-border-radius: 6;
-    -fx-text-fill: #ffffff;
-    -fx-padding: 7 10;
+    -fx-border-radius: 9;
+    -fx-border-width: 1;
+    -fx-padding: 12;
 }
 
-.text-field:focused, .text-area:focused, .combo-box:focused {
+.bracket-match-node:hover {
+    -fx-border-color: #8b5cf6;
+    -fx-background-color: #141c32;
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.25), 12, 0, 0, 0);
+}
+
+.bracket-match-node.live {
+    -fx-border-color: #ff3366;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(three-pass-box, rgba(255, 51, 102, 0.35), 14, 0, 0, 0);
+}
+
+/* ==========================================
+   FORM CONTROLS & INPUTS
+   ========================================== */
+.text-field, .text-area {
+    -fx-background-color: #0b0f1a;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 7;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 8 12;
+    -fx-prompt-text-fill: #475569;
+}
+
+.text-field:focused, .text-area:focused {
+    -fx-border-color: #00f0ff;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.35), 8, 0, 0, 0);
+}
+
+.combo-box {
+    -fx-background-color: #0b0f1a;
+    -fx-border-color: rgba(255, 255, 255, 0.12);
+    -fx-border-radius: 7;
+    -fx-padding: 4 8;
+}
+
+.combo-box:focused {
     -fx-border-color: #00f0ff;
 }
 
 .combo-box .list-cell {
-    -fx-background-color: #0c0f18;
+    -fx-background-color: #0b0f1a;
     -fx-text-fill: #ffffff;
+    -fx-padding: 6 10;
 }
 
-/* TableView */
+.combo-box-popup .list-view {
+    -fx-background-color: #0e1424;
+    -fx-border-color: #00f0ff;
+    -fx-border-radius: 6;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #1a233b;
+    -fx-text-fill: #00f0ff;
+}
+
+/* ==========================================
+   TABLE VIEW (CYBER GRID)
+   ========================================== */
 .table-view {
-    -fx-background-color: #121726;
-    -fx-border-color: rgba(255, 255, 255, 0.07);
-    -fx-border-radius: 8;
+    -fx-background-color: #0e1424;
+    -fx-border-color: rgba(255, 255, 255, 0.08);
+    -fx-border-radius: 10;
     -fx-table-cell-border-color: transparent;
 }
 
 .table-view .column-header-background {
-    -fx-background-color: #0b0f1a;
+    -fx-background-color: #090d18;
 }
 
 .table-view .column-header {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.08) transparent;
-    -fx-padding: 8;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.1) transparent;
+    -fx-padding: 10 8;
 }
 
 .table-view .column-header .label {
     -fx-text-fill: #94a3b8;
-    -fx-font-weight: bold;
+    -fx-font-weight: 800;
     -fx-font-size: 11px;
+    -fx-letter-spacing: 0.5px;
 }
 
 .table-row-cell {
-    -fx-background-color: #121726;
+    -fx-background-color: #0e1424;
     -fx-border-color: transparent transparent rgba(255, 255, 255, 0.03) transparent;
-    -fx-padding: 4;
+    -fx-padding: 6;
 }
 
 .table-row-cell:odd {
-    -fx-background-color: #101422;
+    -fx-background-color: #0b101c;
 }
 
 .table-row-cell:hover {
-    -fx-background-color: #182033;
+    -fx-background-color: #151e33;
 }
 
 .table-row-cell:selected {
-    -fx-background-color: rgba(0, 240, 255, 0.15);
-    -fx-text-fill: #00f0ff;
+    -fx-background-color: rgba(0, 240, 255, 0.18);
+    -fx-border-color: transparent transparent transparent #00f0ff;
+    -fx-border-width: 0 0 0 3;
 }
 
 .table-cell {
     -fx-text-fill: #f1f5f9;
+}
+
+/* ==========================================
+   SCROLLBARS (MINIMAL SLEEK CYBER)
+   ========================================== */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.16);
+    -fx-background-radius: 6;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #00f0ff;
+}
+
+.scroll-bar .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ==========================================
+   DIALOG PANE & ALERTS (CUSTOM GAMER MODALS)
+   ========================================== */
+.dialog-pane {
+    -fx-background-color: #0c101d;
+    -fx-border-color: #00f0ff;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 16;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 240, 255, 0.35), 24, 0, 0, 0);
+}
+
+.dialog-pane:header .header-panel {
+    -fx-background-color: #111729;
+    -fx-background-radius: 10 10 0 0;
+    -fx-padding: 16 20;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.08) transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.dialog-pane:header .header-panel .label {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #00f0ff;
+    -fx-letter-spacing: 0.5px;
+}
+
+.dialog-pane > .content.label {
+    -fx-text-fill: #e2e8f0;
+    -fx-font-size: 13px;
+    -fx-padding: 16 10;
+}
+
+.dialog-pane .button-bar .container {
+    -fx-background-color: transparent;
+    -fx-padding: 12 0 0 0;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: #8b5cf6;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7;
+    -fx-padding: 9 20;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button-bar .button:hover {
+    -fx-background-color: #a78bfa;
+    -fx-effect: dropshadow(three-pass-box, rgba(139, 92, 246, 0.5), 10, 0, 0, 0);
+}
+
+.dialog-pane .button-bar .button.cancel-button {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-border-radius: 7;
+    -fx-text-fill: #94a3b8;
+}
+
+.dialog-pane .button-bar .button.cancel-button:hover {
+    -fx-border-color: #ff3366;
+    -fx-text-fill: #ff3366;
 }

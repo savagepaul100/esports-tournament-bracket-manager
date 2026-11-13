@@ -44,6 +44,20 @@ public class ApiClient {
         return currentUser;
     }
 
+    public boolean isBackendAlive() {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/api/tournaments"))
+                    .timeout(Duration.ofSeconds(2))
+                    .GET()
+                    .build();
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            return res.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean login(String username, String password) {
         try {
             Map<String, String> body = Map.of("username", username, "password", password);

@@ -12,9 +12,13 @@ buildNumber.properties
 
 # Portable tools
 .git-bin/
+.gh-bin/
+.firebase/
 .mingit.zip
 .maven/
 apache-maven.zip
+staging-dist/
+*.zip
 
 # IDE specific files
 .idea/

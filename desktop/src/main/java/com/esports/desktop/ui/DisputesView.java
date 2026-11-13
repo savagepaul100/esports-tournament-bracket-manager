@@ -197,14 +197,16 @@ public class DisputesView extends VBox {
         grid.add(txtNotes, 1, 1);
 
         dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(res -> {
             if (res == btnSubmit) {
                 boolean ok = apiClient.resolveDispute(selected.getId(), cmbDecision.getValue(), txtNotes.getText());
                 if (ok) {
+                    CyberAlert.showInfo("Dispute Resolved", "Ruling applied and synchronized with Cloud Firestore.");
                     loadData();
                 } else {
-                    showAlert("Failed to resolve dispute.");
+                    CyberAlert.showError("Resolution Error", "Failed to resolve dispute.");
                 }
             }
         });
@@ -213,7 +215,7 @@ public class DisputesView extends VBox {
     private void showModerateDialog() {
         ConductReportDto selected = conductTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert("Please select an incident report from the lower table first.");
+            CyberAlert.showInfo("Integrity & Moderation", "Please select an incident report from the lower table first.");
             return;
         }
 
@@ -241,24 +243,22 @@ public class DisputesView extends VBox {
         grid.add(txtReason, 1, 1);
 
         dialog.getDialogPane().setContent(grid);
+        CyberAlert.style(dialog);
 
         dialog.showAndWait().ifPresent(res -> {
             if (res == btnSubmit) {
                 boolean ok = apiClient.resolveConductReport(selected.getId(), cmbAction.getValue(), txtReason.getText());
                 if (ok) {
+                    CyberAlert.showInfo("Moderation Applied", "Fair-play moderation action recorded into tournament audit trail.");
                     loadData();
                 } else {
-                    showAlert("Failed to apply moderation action.");
+                    CyberAlert.showError("Moderation Error", "Failed to apply moderation action.");
                 }
             }
         });
     }
 
     private void showAlert(String msg) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Nexus Arena Organizer");
-        alert.setHeaderText(null);
-        alert.setContentText(msg);
-        alert.showAndWait();
+        CyberAlert.showInfo("Disputes & Integrity", msg);
     }
 }

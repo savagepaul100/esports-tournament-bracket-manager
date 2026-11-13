@@ -63,7 +63,9 @@ public class FirebaseConfig {
     public com.esports.manager.repository.DataStore dataStore(Firestore firestore, com.esports.manager.repository.LocalJsonDataStore localDataStore) {
         if (firestore != null) {
             log.info("🔥 Activating Cloud Firestore as the primary real-time DataStore.");
-            return new com.esports.manager.repository.FirestoreDataStore(firestore);
+            com.esports.manager.repository.FirestoreDataStore store = new com.esports.manager.repository.FirestoreDataStore(firestore);
+            store.init();
+            return store;
         }
         log.info("⚡ Activating Local JSON DataStore as primary DataStore.");
         return localDataStore;
