@@ -5,7 +5,6 @@ import com.esports.desktop.model.TournamentDto;
 import com.esports.desktop.ui.*;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -19,16 +18,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Nexus Arena Desktop Application.
+ * Features an industrial side-panel navigation layout matching the web portal,
+ * non-blocking asynchronous cloud data syncing, and an integrated in-app updater.
+ */
 public class EsportsDesktopApplication extends Application {
     private ApiClient apiClient;
     private BorderPane rootLayout;
     private StackPane contentHolder;
     private Label lblConnectionStatus;
     private ComboBox<TournamentDto> cmbActiveTournament;
-    private Label lblStatTeams;
-    private Label lblStatMatches;
-    private Label lblStatPrize;
-    private Label lblStatStatus;
     private String currentViewKey = "tournaments";
     private final Map<String, Button> navButtons = new HashMap<>();
 
@@ -39,30 +39,31 @@ public class EsportsDesktopApplication extends Application {
         rootLayout = new BorderPane();
         contentHolder = new StackPane();
 
-        // Header combining Top Navigation Bar + Hero Banner (identical to website!)
-        VBox headerArea = new VBox();
-        HBox topNavbar = buildTopNavbar();
-        HBox heroBanner = buildHeroBanner();
-        headerArea.getChildren().addAll(topNavbar, heroBanner);
-        rootLayout.setTop(headerArea);
+        // 1. Minimal Top Header Bar (Only essential actions)
+        HBox topBar = buildTopBar();
+        rootLayout.setTop(topBar);
 
-        // Center Content Area
+        // 2. Clean Left Side Panel (Full navigation & update checker)
+        VBox sidebar = buildSidebar();
+        rootLayout.setLeft(sidebar);
+
+        // 3. Center Content Area
         rootLayout.setCenter(contentHolder);
 
-        // Footer Bar
-        HBox footerBar = buildFooterBar();
-        rootLayout.setBottom(footerBar);
+        // 4. Minimal Footer Bar
+        HBox footer = buildFooter();
+        rootLayout.setBottom(footer);
 
         // Update connection status
         updateConnectionUi(apiClient.isConnected());
 
-        // Refresh tournaments for hero banner
+        // Refresh tournaments dropdown for active picker
         refreshTournamentsDropdown();
 
-        // Initial View: Tournaments (matching website default tab!)
+        // Default initial view: Tournaments
         switchView("tournaments");
 
-        Scene scene = new Scene(rootLayout, 1360, 860);
+        Scene scene = new Scene(rootLayout, 1340, 840);
 
         // Load Gamer Theme CSS
         String css = getClass().getResource("/styles/gamer-theme.css") != null
@@ -74,157 +75,149 @@ public class EsportsDesktopApplication extends Application {
 
         primaryStage.setTitle("NEXUS ARENA | E-Sports Tournament & Bracket Manager");
         primaryStage.setScene(scene);
-        primaryStage.setMinWidth(1120);
-        primaryStage.setMinHeight(720);
+        primaryStage.setMinWidth(1080);
+        primaryStage.setMinHeight(680);
         primaryStage.show();
 
         if (!apiClient.isConnected()) {
-            Platform.runLater(() -> CyberAlert.showError("Firebase Connection Failed",
+            Platform.runLater(() -> CyberAlert.showError("Cloud Sync Status",
                     "Could not connect to Cloud Firestore.\n" +
                     "Error: " + apiClient.getConnectionError() + "\n\n" +
-                    "Ensure internet connection is active."));
+                    "Running with local high-speed prototype cache."));
         }
     }
 
-    private HBox buildTopNavbar() {
+    private HBox buildTopBar() {
         HBox topBar = new HBox(12);
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.getStyleClass().add("top-header-bar");
         topBar.setMinHeight(48);
         topBar.setMaxHeight(48);
 
-        // Brand Logo
-        HBox brandBox = new HBox(6);
-        brandBox.setAlignment(Pos.CENTER_LEFT);
-        Label icon = new Label("⚡");
-        icon.setStyle("-fx-font-size: 18px; -fx-text-fill: #dc2626;");
-        Label brand = new Label("NEXUS ");
-        brand.getStyleClass().add("brand-label");
-        Label brandAccent = new Label("ARENA");
-        brandAccent.getStyleClass().addAll("brand-label", "brand-accent");
-        brandBox.getChildren().addAll(icon, brand, brandAccent);
+        Label lblPicker = new Label("ACTIVE EVENT:");
+        lblPicker.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
 
-        // Live Pill
-        Label livePill = new Label("● LIVE");
-        livePill.getStyleClass().addAll("badge-pill", "badge-live-fx");
-
-        // Horizontal Navigation Tabs (Identical to Website)
-        HBox navGroup = new HBox(4);
-        navGroup.setAlignment(Pos.CENTER_LEFT);
-        navGroup.getChildren().addAll(
-                createTopNavButton("Tournaments", "tournaments"),
-                createTopNavButton("Bracket", "bracket"),
-                createTopNavButton("Standings", "dashboard"),
-                createTopNavButton("Matches", "matches"),
-                createTopNavButton("Teams", "teams"),
-                createTopNavButton("Disputes", "disputes"),
-                createTopNavButton("Audit", "audit")
-        );
+        cmbActiveTournament = new ComboBox<>();
+        cmbActiveTournament.setPrefWidth(280);
+        cmbActiveTournament.setPromptText("Select active tournament...");
+        cmbActiveTournament.setOnAction(e -> {
+            TournamentDto selected = cmbActiveTournament.getValue();
+            if (selected != null) {
+                switchView(currentViewKey);
+            }
+        });
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // Right Actions
-        Button btnSync = new Button("↻ Sync");
+        Button btnSync = new Button("↻ Sync Data");
         btnSync.getStyleClass().add("btn-outline");
         btnSync.setOnAction(e -> {
-            updateConnectionUi(apiClient.isConnected());
-            refreshTournamentsDropdown();
-            switchView(currentViewKey);
+            btnSync.setDisable(true);
+            btnSync.setText("↻ Syncing...");
+            apiClient.refreshAllAsync(() -> {
+                btnSync.setDisable(false);
+                btnSync.setText("↻ Sync Data");
+                updateConnectionUi(apiClient.isConnected());
+                refreshTournamentsDropdown();
+                switchView(currentViewKey);
+                CyberAlert.showInfo("Cloud Sync", "All tournament data, live rounds, and rosters synchronized with Cloud Firestore.");
+            });
         });
 
         Button btnPortal = new Button("🌐 Live Web Portal");
         btnPortal.getStyleClass().add("btn-cyan");
         btnPortal.setOnAction(e -> openUrl("https://nexusarena-esports.web.app"));
 
-        lblConnectionStatus = new Label("● FIREBASE ONLINE");
+        lblConnectionStatus = new Label("● CLOUD ONLINE");
         lblConnectionStatus.getStyleClass().addAll("badge-pill", "badge-green-fx");
 
         Label userBadge = new Label("⚡ " + apiClient.getCurrentUser().getGamerTag() + " (ORGANIZER)");
         userBadge.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
 
-        topBar.getChildren().addAll(brandBox, livePill, navGroup, spacer, btnSync, btnPortal, lblConnectionStatus, userBadge);
+        topBar.getChildren().addAll(lblPicker, cmbActiveTournament, spacer, btnSync, btnPortal, lblConnectionStatus, userBadge);
         return topBar;
     }
 
-    private HBox buildHeroBanner() {
-        HBox hero = new HBox(16);
-        hero.setAlignment(Pos.CENTER_LEFT);
-        hero.getStyleClass().add("hero-banner-bar");
-        hero.setMinHeight(52);
-        hero.setMaxHeight(52);
+    private VBox buildSidebar() {
+        VBox sidebar = new VBox(12);
+        sidebar.setPrefWidth(220);
+        sidebar.getStyleClass().add("sidebar");
 
-        Label lblPicker = new Label("ACTIVE TOURNAMENT:");
-        lblPicker.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px; -fx-letter-spacing: 0.5px;");
+        // Brand
+        HBox brandBox = new HBox(6);
+        brandBox.setAlignment(Pos.CENTER_LEFT);
+        brandBox.setStyle("-fx-padding: 4 0 12 4;");
+        Label icon = new Label("⚡");
+        icon.setStyle("-fx-font-size: 20px; -fx-text-fill: #dc2626;");
+        Label brand = new Label("NEXUS ");
+        brand.getStyleClass().add("brand-label");
+        Label brandAccent = new Label("ARENA");
+        brandAccent.getStyleClass().addAll("brand-label", "brand-accent");
+        brandBox.getChildren().addAll(icon, brand, brandAccent);
 
-        cmbActiveTournament = new ComboBox<>();
-        cmbActiveTournament.setPrefWidth(320);
-        cmbActiveTournament.setOnAction(e -> updateHeroStats(cmbActiveTournament.getValue()));
+        // Navigation Group (Vertical side panel)
+        VBox navGroup = new VBox(4);
+        navGroup.getChildren().addAll(
+                createNavButton("🏆  Tournaments", "tournaments"),
+                createNavButton("⚡  Bracket Tree", "bracket"),
+                createNavButton("📊  Standings", "dashboard"),
+                createNavButton("🎮  Live Matches", "matches"),
+                createNavButton("👥  Team Rosters", "teams"),
+                createNavButton("🛡️  Disputes", "disputes"),
+                createNavButton("📜  Audit Trail", "audit")
+        );
+        VBox.setVgrow(navGroup, Priority.ALWAYS);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        // Sidebar Footer: Version and In-App Update Checker
+        VBox updateBox = new VBox(8);
+        updateBox.setStyle("-fx-background-color: #18181b; -fx-padding: 12; -fx-background-radius: 2; " +
+                "-fx-border-color: #27272a; -fx-border-radius: 2; -fx-border-width: 1;");
 
-        lblStatTeams = createStatPill("TEAMS", "8");
-        lblStatMatches = createStatPill("MATCHES", "7");
-        lblStatPrize = createStatPill("PRIZE", "$50,000");
-        lblStatStatus = createStatPill("STATUS", "LIVE");
+        Label lblVer = new Label("Nexus Arena v" + ApiClient.CURRENT_VERSION);
+        lblVer.setStyle("-fx-font-size: 11px; -fx-font-weight: 800; -fx-text-fill: #ffffff;");
 
-        hero.getChildren().addAll(lblPicker, cmbActiveTournament, spacer, lblStatTeams, lblStatMatches, lblStatPrize, lblStatStatus);
-        return hero;
+        Label lblCloudSync = new Label("🔥 Firestore Synced");
+        lblCloudSync.setStyle("-fx-font-size: 10px; -fx-text-fill: #dc2626; -fx-font-weight: bold;");
+
+        Button btnUpdate = new Button("🔄 Check for Updates");
+        btnUpdate.setMaxWidth(Double.MAX_VALUE);
+        btnUpdate.getStyleClass().add("btn-outline");
+        btnUpdate.setStyle("-fx-font-size: 10.5px; -fx-padding: 5 8;");
+        btnUpdate.setOnAction(e -> handleCheckUpdates(btnUpdate));
+
+        updateBox.getChildren().addAll(lblVer, lblCloudSync, btnUpdate);
+
+        sidebar.getChildren().addAll(brandBox, navGroup, updateBox);
+        return sidebar;
     }
 
-    private Label createStatPill(String title, String val) {
-        Label lbl = new Label(title + ": " + val);
-        lbl.getStyleClass().add("hero-stat-pill");
-        lbl.setStyle("-fx-font-family: 'Segoe UI', sans-serif; -fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #ffffff;");
-        return lbl;
-    }
+    private void handleCheckUpdates(Button btnUpdate) {
+        btnUpdate.setDisable(true);
+        btnUpdate.setText("Checking cloud...");
+        apiClient.checkForUpdatesAsync(res -> {
+            btnUpdate.setDisable(false);
+            btnUpdate.setText("🔄 Check for Updates");
 
-    private void updateHeroStats(TournamentDto t) {
-        if (t == null) return;
-        Platform.runLater(() -> {
-            lblStatTeams.setText("MAX TEAMS: " + t.getMaxParticipants());
-            lblStatMatches.setText("MODE: " + (t.getMode() != null ? t.getMode() : "BRACKET"));
-            lblStatPrize.setText("GAME: " + (t.getGame() != null ? t.getGame() : "VALORANT"));
-            lblStatStatus.setText("STATUS: " + (t.getStatus() != null ? t.getStatus() : "LIVE"));
+            if (res.updateAvailable) {
+                boolean downloadNow = CyberAlert.showConfirm("Update Available (" + res.latestVersion + ")",
+                        res.message + "\n\nRelease Notes: " + res.releaseNotes,
+                        "Would you like to open the website to download the latest Windows package now?");
+                if (downloadNow) {
+                    openUrl("https://nexusarena-esports.web.app");
+                }
+            } else {
+                CyberAlert.showInfo("Nexus Arena Up to Date",
+                        "You are currently running the latest version (v" + ApiClient.CURRENT_VERSION + ").\n" +
+                        "All cloud synchronization protocols are active.");
+            }
         });
     }
 
-    private void refreshTournamentsDropdown() {
-        new Thread(() -> {
-            List<TournamentDto> list = apiClient.getTournaments();
-            Platform.runLater(() -> {
-                cmbActiveTournament.getItems().setAll(list);
-                if (!list.isEmpty() && cmbActiveTournament.getValue() == null) {
-                    cmbActiveTournament.setValue(list.get(0));
-                    updateHeroStats(list.get(0));
-                }
-            });
-        }).start();
-    }
-
-    private HBox buildFooterBar() {
-        HBox footer = new HBox(14);
-        footer.getStyleClass().add("footer-bar");
-        footer.setMinHeight(28);
-        footer.setMaxHeight(28);
-
-        Label lblEngine = new Label("⚡ NEXUS ARENA ESPORTS ENGINE");
-        lblEngine.setStyle("-fx-font-weight: 800; -fx-text-fill: #71717a; -fx-font-size: 10.5px;");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        Label lblDetails = new Label("100% Cloud-Synchronized (Firestore: nexusarena-esports) • Pure Java 21 Client");
-        lblDetails.setStyle("-fx-text-fill: #52525b; -fx-font-size: 10px;");
-
-        footer.getChildren().addAll(lblEngine, spacer, lblDetails);
-        return footer;
-    }
-
-    private Button createTopNavButton(String text, String viewKey) {
+    private Button createNavButton(String text, String viewKey) {
         Button btn = new Button(text);
-        btn.getStyleClass().add("top-nav-btn");
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.getStyleClass().add("nav-button");
         btn.setOnAction(e -> switchView(viewKey));
         navButtons.put(viewKey, btn);
         return btn;
@@ -257,14 +250,43 @@ public class EsportsDesktopApplication extends Application {
         contentHolder.getChildren().add(view);
     }
 
+    private void refreshTournamentsDropdown() {
+        apiClient.refreshAllAsync(() -> {
+            List<TournamentDto> list = apiClient.getTournaments();
+            cmbActiveTournament.getItems().setAll(list);
+            if (!list.isEmpty() && cmbActiveTournament.getValue() == null) {
+                cmbActiveTournament.setValue(list.get(0));
+            }
+        });
+    }
+
+    private HBox buildFooter() {
+        HBox footer = new HBox(12);
+        footer.getStyleClass().add("footer-bar");
+        footer.setMinHeight(26);
+        footer.setMaxHeight(26);
+
+        Label lblEngine = new Label("⚡ NEXUS ARENA ESPORTS ENGINE");
+        lblEngine.setStyle("-fx-font-weight: 800; -fx-text-fill: #71717a; -fx-font-size: 10px;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label lblDetails = new Label("100% Cloud-Synchronized (Google Firestore: nexusarena-esports) • Java 21");
+        lblDetails.setStyle("-fx-text-fill: #52525b; -fx-font-size: 9.5px;");
+
+        footer.getChildren().addAll(lblEngine, spacer, lblDetails);
+        return footer;
+    }
+
     private void updateConnectionUi(boolean isConnected) {
         Platform.runLater(() -> {
             if (lblConnectionStatus == null) return;
             if (isConnected) {
-                lblConnectionStatus.setText("● FIREBASE ONLINE ✓");
+                lblConnectionStatus.setText("● CLOUD ONLINE ✓");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-green-fx");
             } else {
-                lblConnectionStatus.setText("⚠️ FIREBASE OFFLINE");
+                lblConnectionStatus.setText("⚠️ CACHE MODE");
                 lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-live-fx");
             }
         });

@@ -32,14 +32,30 @@ public class DashboardView extends VBox {
         getChildren().clear();
 
         // Header
-        VBox headerBox = new VBox(4);
+        VBox headerBox = new VBox(6);
         Label title = new Label("ORGANIZER COMMAND CENTER");
         title.getStyleClass().add("view-title");
         Label subtitle = new Label("Welcome back, " + apiClient.getCurrentUser().getGamerTag() + " • Real-Time Tournament Operations");
         subtitle.getStyleClass().add("view-subtitle");
-        headerBox.getChildren().addAll(title, subtitle);
 
-        // Fetch data
+        // Guidance Callout Card
+        HBox guidanceBox = new HBox(10);
+        guidanceBox.setAlignment(Pos.CENTER_LEFT);
+        guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
+                "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14;");
+        Label guideIcon = new Label("💡");
+        guideIcon.setStyle("-fx-font-size: 15px;");
+        VBox guideText = new VBox(2);
+        Label guideTitle = new Label("STANDINGS & OPERATIONS OVERVIEW");
+        guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
+        Label guideDesc = new Label("Track real-time matches, active rosters, and fair-play disputes synchronized 100% with Cloud Firestore.");
+        guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
+        guideText.getChildren().addAll(guideTitle, guideDesc);
+        guidanceBox.getChildren().addAll(guideIcon, guideText);
+
+        headerBox.getChildren().addAll(title, subtitle, guidanceBox);
+
+        // Fetch data from high-speed cache
         List<TournamentDto> tournaments = apiClient.getTournaments();
         int totalTournaments = tournaments.size();
         int activeMatches = 0;

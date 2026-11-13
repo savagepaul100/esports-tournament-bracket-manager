@@ -31,7 +31,22 @@ public class MatchesView extends VBox {
         title.getStyleClass().add("view-title");
         Label subtitle = new Label("Real-time round scores, kill tracking, manual match overrides, and bracket finalization.");
         subtitle.getStyleClass().add("view-subtitle");
-        headerBox.getChildren().addAll(title, subtitle);
+
+        HBox guidanceBox = new HBox(10);
+        guidanceBox.setAlignment(Pos.CENTER_LEFT);
+        guidanceBox.setStyle("-fx-background-color: #18181b; -fx-border-color: #ea580c; -fx-border-width: 1 1 1 3; " +
+                "-fx-border-radius: 2; -fx-background-radius: 2; -fx-padding: 8 14; -fx-margin: 0 0 10 0;");
+        Label guideIcon = new Label("💡");
+        guideIcon.setStyle("-fx-font-size: 15px;");
+        VBox guideText = new VBox(2);
+        Label guideTitle = new Label("LIVE MATCH CONTROL ROOM GUIDE");
+        guideTitle.setStyle("-fx-font-weight: 800; -fx-text-fill: #ea580c; -fx-font-size: 11px;");
+        Label guideDesc = new Label("Select a match to update rounds and total kills live, adjust room IPs/passwords, or finalize results for cloud bracket progression.");
+        guideDesc.setStyle("-fx-text-fill: #a1a1aa; -fx-font-size: 11px;");
+        guideText.getChildren().addAll(guideTitle, guideDesc);
+        guidanceBox.getChildren().addAll(guideIcon, guideText);
+
+        headerBox.getChildren().addAll(title, subtitle, guidanceBox);
 
         // Control bar
         HBox topBar = new HBox(8);

@@ -1,0 +1,6 @@
+{
+  "version": "2.4.0",
+  "downloadUrl": "https://nexusarena-esports.web.app/download/NexusArena-Organizer-Windows.zip",
+  "jarUrl": "https://nexusarena-esports.web.app/download/NexusArena.jar",
+  "releaseNotes": "Performance upgrade: Non-blocking asynchronous Firestore engine, side-panel layout, instant response times, and guidance banners."
+}

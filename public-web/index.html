@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS ARENA | E-Sports Tournament & Bracket Portal</title>
+    <title>NEXUS ARENA | Cloud E-Sports Tournament Suite</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2.2">
+    <link rel="stylesheet" href="style.css?v=2.5">
 </head>
 <body>
-    <!-- Top Navigation Bar -->
-    <header class="navbar">
-        <div class="nav-container">
-            <div class="brand">
+    <div class="app-layout">
+        <!-- LEFT SIDEBAR PANEL (Identical to Desktop App) -->
+        <aside class="app-sidebar">
+            <div class="sidebar-brand">
                 <div class="brand-logo">
                     <span class="logo-icon">⚡</span>
                     <span class="brand-text">NEXUS<span class="accent-red">ARENA</span></span>
@@ -24,181 +24,217 @@
                 </div>
             </div>
 
-            <nav class="nav-links">
-                <button class="nav-link active" data-tab="tournaments-view">Tournaments</button>
-                <button class="nav-link" data-tab="bracket-view">Bracket</button>
-                <button class="nav-link" data-tab="standings-view">Standings</button>
-                <button class="nav-link" data-tab="schedule-view">Matches</button>
-                <button class="nav-link" data-tab="teams-view">Teams</button>
+            <nav class="sidebar-nav">
+                <button class="nav-link active" data-tab="tournaments-view">
+                    <span class="nav-icon">🏆</span> Tournaments
+                </button>
+                <button class="nav-link" data-tab="bracket-view">
+                    <span class="nav-icon">⚡</span> Bracket Tree
+                </button>
+                <button class="nav-link" data-tab="standings-view">
+                    <span class="nav-icon">📊</span> Standings
+                </button>
+                <button class="nav-link" data-tab="schedule-view">
+                    <span class="nav-icon">🎮</span> Live Matches
+                </button>
+                <button class="nav-link" data-tab="teams-view">
+                    <span class="nav-icon">👥</span> Team Rosters
+                </button>
             </nav>
 
-            <div class="nav-actions">
-                <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-secondary" id="btn-download-app" download title="Download Windows Suite">
-                    <span>⬇</span> App
+            <div class="sidebar-footer">
+                <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-secondary btn-block" id="btn-download-app" download title="Download Windows Organizer Application">
+                    <span>⬇</span> Download Windows App
                 </a>
-                <button class="btn btn-outline" id="btn-refresh" title="Refresh Live Data">
-                    <span class="btn-icon">↻</span> Sync
-                </button>
-                <button class="btn btn-secondary" id="btn-open-register">
-                    <span>+</span> Register
-                </button>
-                <button class="btn btn-primary" id="btn-user-action">
-                    Sign In
-                </button>
+                <div class="version-meta">
+                    <span>Nexus Arena v2.4.0</span>
+                    <span class="cloud-status-dot">🔥 Cloud Firestore Live</span>
+                </div>
             </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT -->
+        <div class="app-main">
+            <!-- MINIMAL TOP BAR -->
+            <header class="top-bar">
+                <div class="top-left">
+                    <label for="tournament-select" class="picker-label">ACTIVE EVENT:</label>
+                    <div class="select-wrapper">
+                        <select id="tournament-select" class="game-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="top-actions">
+                    <button class="btn btn-outline" id="btn-refresh" title="Refresh Live Cloud Data">
+                        <span class="btn-icon">↻</span> Sync
+                    </button>
+                    <button class="btn btn-secondary" id="btn-open-register">
+                        <span>+</span> Register Team
+                    </button>
+                    <button class="btn btn-primary" id="btn-user-action">
+                        Sign In
+                    </button>
+                </div>
+            </header>
+
+            <!-- MAIN CONTENT AREA -->
+            <main class="main-content">
+                <!-- TAB 1: TOURNAMENTS LIST -->
+                <section id="tournaments-view" class="tab-pane active">
+                    <!-- Guidance Banner -->
+                    <div class="guidance-banner">
+                        <span class="guide-icon">💡</span>
+                        <div>
+                            <strong>TOURNAMENT OPERATIONS GUIDE:</strong>
+                            <p>Browse active and upcoming esports championships. Filter by game, inspect rules, or click "+ Register Team" above to enroll your squad.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <h2>Published Championships</h2>
+                        <div class="filter-group">
+                            <button class="filter-chip active" data-filter="ALL">All Games</button>
+                            <button class="filter-chip" data-filter="Valorant">Valorant</button>
+                            <button class="filter-chip" data-filter="Counter-Strike 2">CS2</button>
+                            <button class="filter-chip" data-filter="Dota 2">Dota 2</button>
+                            <button class="filter-chip" data-filter="Battlegrounds Mobile">BGMI</button>
+                            <button class="filter-chip" data-filter="Apex Legends">Apex Legends</button>
+                        </div>
+                    </div>
+                    <div class="tournaments-grid" id="tournaments-list">
+                        <!-- Injected via JS -->
+                    </div>
+                </section>
+
+                <!-- TAB 2: LIVE BRACKET VIEW -->
+                <section id="bracket-view" class="tab-pane">
+                    <!-- Guidance Banner -->
+                    <div class="guidance-banner">
+                        <span class="guide-icon">💡</span>
+                        <div>
+                            <strong>INTERACTIVE BRACKET GUIDE:</strong>
+                            <p>Live single-elimination tournament tree. Rounds, frags/kills, and scores update in real time with Cloud Firestore. Winners automatically advance to the next round.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Championship Bracket Tree</h2>
+                            <p class="subtitle">Live tree progression with verified scores & automatic winner advancement.</p>
+                        </div>
+                        <div class="bracket-legend">
+                            <span class="legend-item"><span class="legend-dot dot-live"></span> Live Match</span>
+                            <span class="legend-item"><span class="legend-dot dot-complete"></span> Completed</span>
+                            <span class="legend-item"><span class="legend-dot dot-bye"></span> BYE Advance</span>
+                        </div>
+                    </div>
+
+                    <div class="bracket-wrapper" id="bracket-tree-container">
+                        <!-- Injected via JS: rounds, matchup cards, connecting lines -->
+                    </div>
+                </section>
+
+                <!-- TAB 3: STANDINGS VIEW -->
+                <section id="standings-view" class="tab-pane">
+                    <!-- Guidance Banner -->
+                    <div class="guidance-banner">
+                        <span class="guide-icon">💡</span>
+                        <div>
+                            <strong>STANDINGS & LEADERBOARD GUIDE:</strong>
+                            <p>Official tournament ladder compiled from completed match results, frags/kills, and placement points. Real-time updates synchronized across web and desktop.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Tournament Standings & Leaderboard</h2>
+                            <p class="subtitle">Real-time cumulative points, placement scores, and kill tallies.</p>
+                        </div>
+                        <button class="btn btn-outline" id="btn-export-csv" onclick="downloadCsv()">
+                            📥 Export CSV
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="gamer-table" id="standings-table">
+                            <thead>
+                                <tr>
+                                    <th>RANK</th>
+                                    <th>TEAM</th>
+                                    <th>MATCHES</th>
+                                    <th>KILLS</th>
+                                    <th>PLACEMENT PTS</th>
+                                    <th>KILL PTS</th>
+                                    <th>TOTAL PTS</th>
+                                    <th>STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standings-tbody">
+                                <!-- Injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- TAB 4: MATCHES SCHEDULE VIEW -->
+                <section id="schedule-view" class="tab-pane">
+                    <!-- Guidance Banner -->
+                    <div class="guidance-banner">
+                        <span class="guide-icon">💡</span>
+                        <div>
+                            <strong>LIVE MATCH SCHEDULE GUIDE:</strong>
+                            <p>View upcoming, live, and finished tournament matches. Verified captains can review map assignments, server room IDs, and room passwords.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Live Match Operations Room</h2>
+                            <p class="subtitle">Match schedules, server room credentials, and real-time round statuses.</p>
+                        </div>
+                    </div>
+
+                    <div class="matches-list-grid" id="matches-grid">
+                        <!-- Injected via JS -->
+                    </div>
+                </section>
+
+                <!-- TAB 5: TEAMS VIEW -->
+                <section id="teams-view" class="tab-pane">
+                    <!-- Guidance Banner -->
+                    <div class="guidance-banner">
+                        <span class="guide-icon">💡</span>
+                        <div>
+                            <strong>TEAM ROSTERS & SECURITY GUIDE:</strong>
+                            <p>Approved team rosters and tournament seedings. Every registered team is protected by a security password created at registration time.</p>
+                        </div>
+                    </div>
+
+                    <div class="section-header">
+                        <div>
+                            <h2>Registered Team Rosters</h2>
+                            <p class="subtitle">Verified players, seedings, and captain credentials.</p>
+                        </div>
+                    </div>
+
+                    <div class="teams-grid" id="teams-grid">
+                        <!-- Injected via JS -->
+                    </div>
+                </section>
+            </main>
+
+            <!-- FOOTER -->
+            <footer class="footer">
+                <div class="footer-container">
+                    <div class="footer-brand">⚡ NEXUS ARENA ESPORTS ENGINE</div>
+                    <div class="footer-copy">Full-Stack Java 21 &amp; Cloud Firestore • Academic End-Semester Project</div>
+                    <div class="footer-status"><span class="pulse-dot"></span> Backend: <span id="server-status">Connected</span></div>
+                </div>
+            </footer>
         </div>
-    </header>
-
-    <!-- Hero / Featured Tournament Banner -->
-    <section class="hero-banner">
-        <div class="hero-content">
-            <div class="hero-badges">
-                <span class="badge badge-purple" id="hero-game-badge">VALORANT</span>
-                <span class="badge badge-live" id="hero-status-badge">● IN PROGRESS</span>
-                <span class="badge badge-dark" id="hero-mode-badge">Single Elimination</span>
-            </div>
-            <h1 class="hero-title" id="hero-title">VALORANT CYBER MASTERS 2026</h1>
-            <p class="hero-desc" id="hero-desc">Tier 1 international championship featuring elite 5v5 rosters battling in single elimination.</p>
-            
-            <div class="hero-stats">
-                <div class="stat-card">
-                    <span class="stat-num" id="hero-team-count">8</span>
-                    <span class="stat-label">Teams</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-num" id="hero-matches-count">7</span>
-                    <span class="stat-label">Matches</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-num highlight-amber" id="hero-prize">₹2,50,000</span>
-                    <span class="stat-label">Prize Pool</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-num highlight-cyan" id="hero-room">NX-SF-202</span>
-                    <span class="stat-label">Live Room</span>
-                </div>
-            </div>
-
-            <div class="hero-cta">
-                <button class="btn btn-glow" onclick="switchTab('bracket-view')">View Tournament Bracket</button>
-                <a href="/download/NexusArena-Organizer-Windows.zip" class="btn btn-cyan-download" download>
-                    ⬇ Download Organizer (Windows)
-                </a>
-                <button class="btn btn-outline" onclick="openDisputeModal()">Dispute Match</button>
-                <button class="btn btn-outline" onclick="openReportModal()">Report Misconduct</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Main Container -->
-    <main class="main-content">
-        <!-- Tournament Selector Bar -->
-        <div class="tournament-selector-bar">
-            <label for="tournament-select" class="selector-label">Active Tournament:</label>
-            <div class="select-wrapper">
-                <select id="tournament-select" class="game-select">
-                    <!-- Populated dynamically -->
-                </select>
-            </div>
-            <div class="status-summary" id="tournament-summary-text">
-                Status: <span class="badge badge-live">IN PROGRESS</span>
-            </div>
-        </div>
-
-        <!-- TAB 1: TOURNAMENTS LIST -->
-        <section id="tournaments-view" class="tab-pane active">
-            <div class="section-header">
-                <h2>Published Tournaments</h2>
-                <div class="filter-group">
-                    <button class="filter-chip active" data-filter="ALL">All Games</button>
-                    <button class="filter-chip" data-filter="Valorant">Valorant</button>
-                    <button class="filter-chip" data-filter="Battlegrounds Mobile">BGMI / PUBG</button>
-                    <button class="filter-chip" data-filter="Free Fire">Free Fire</button>
-                </div>
-            </div>
-            <div class="tournaments-grid" id="tournaments-list">
-                <!-- Injected via JS -->
-            </div>
-        </section>
-
-        <!-- TAB 2: LIVE BRACKET VIEW -->
-        <section id="bracket-view" class="tab-pane">
-            <div class="section-header">
-                <div>
-                    <h2>Single-Elimination Bracket</h2>
-                    <p class="subtitle">Live tree progression with verified scores & automatic winner advancement.</p>
-                </div>
-                <div class="bracket-legend">
-                    <span class="legend-item"><span class="legend-dot dot-live"></span> Live Match</span>
-                    <span class="legend-item"><span class="legend-dot dot-complete"></span> Completed</span>
-                    <span class="legend-item"><span class="legend-dot dot-bye"></span> BYE Advance</span>
-                </div>
-            </div>
-
-            <div class="bracket-wrapper" id="bracket-tree-container">
-                <!-- Injected via JS: rounds, matchup cards, connecting lines -->
-            </div>
-        </section>
-
-        <!-- TAB 3: STANDINGS / BATTLE ROYALE VIEW -->
-        <section id="standings-view" class="tab-pane">
-            <div class="section-header">
-                <div>
-                    <h2>Tournament Standings & Leaderboard</h2>
-                    <p class="subtitle">Real-time cumulative points, placement scores, and kill multipliers.</p>
-                </div>
-                <button class="btn btn-outline" id="btn-export-csv" onclick="downloadCsv()">
-                    📥 Export CSV
-                </button>
-            </div>
-
-            <div class="table-container">
-                <table class="gamer-table" id="standings-table">
-                    <thead>
-                        <tr>
-                            <th>RANK</th>
-                            <th>TEAM</th>
-                            <th>MATCHES</th>
-                            <th>KILLS</th>
-                            <th>PLACEMENT PTS</th>
-                            <th>KILL PTS</th>
-                            <th>TOTAL POINTS</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standings-tbody">
-                        <!-- Populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- TAB 4: MATCH SCHEDULE & ROOM CODES -->
-        <section id="schedule-view" class="tab-pane">
-            <div class="section-header">
-                <div>
-                    <h2>Match Schedule & Room Credentials</h2>
-                    <p class="subtitle">Official match times, room IDs, passwords, and maps.</p>
-                </div>
-            </div>
-            <div class="matches-list-grid" id="matches-grid">
-                <!-- Populated by JS -->
-            </div>
-        </section>
-
-        <!-- TAB 5: TEAMS & ROSTERS -->
-        <section id="teams-view" class="tab-pane">
-            <div class="section-header">
-                <div>
-                    <h2>Registered Teams & Rosters</h2>
-                    <p class="subtitle">Approved participants, team tags, and check-in statuses.</p>
-                </div>
-            </div>
-            <div class="teams-grid" id="teams-grid">
-                <!-- Populated by JS -->
-            </div>
-        </section>
-    </main>
+    </div>
 
     <!-- MODAL: REGISTER TEAM -->
     <div class="modal" id="modal-register">
@@ -290,7 +326,7 @@
         <div class="modal-backdrop" onclick="closeModal('modal-report')"></div>
         <div class="modal-dialog">
             <div class="modal-header">
-                <h3>REPORT FAIR-PLAY OR CONDUCT VIOLATION</h3>
+                <h3>REPORT FAIR-PLAY VIOLATION</h3>
                 <button class="modal-close" onclick="closeModal('modal-report')">×</button>
             </div>
             <form id="form-report">
@@ -326,7 +362,11 @@
                     <button type="button" class="btn btn-outline" onclick="closeModal('modal-report')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Submit Report</button>
                 </div>
-    <!-- MODAL: AUTH / SIGN IN -->
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: AUTH / SIGN IN (PROPERLY CLOSED & ACCESSIBLE) -->
     <div class="modal" id="modal-auth">
         <div class="modal-backdrop" onclick="closeModal('modal-auth')"></div>
         <div class="modal-dialog">
@@ -343,8 +383,10 @@
                     <label>Password *</label>
                     <input type="password" id="auth-password" class="input-field" placeholder="admin123 or tenz123" required>
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-                    💡 Quick Demo Credentials: <strong>admin</strong> / <strong>admin123</strong> (Organizer) or <strong>tenz</strong> / <strong>tenz123</strong> (Participant)
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+                    💡 Quick Demo Credentials:<br>
+                    • Organizer: <strong>admin</strong> / <strong>admin123</strong><br>
+                    • Participant: <strong>tenz</strong> / <strong>tenz123</strong>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('modal-auth')">Cancel</button>
@@ -354,21 +396,13 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast Notification Container -->
     <div id="toast-container" class="toast-container"></div>
-
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-brand">⚡ NEXUS ARENA ESPORTS ENGINE</div>
-            <div class="footer-copy">Full-Stack Java 21 &amp; Firebase Architecture • Academic End-Semester Project</div>
-            <div class="footer-status"><span class="pulse-dot"></span> Backend Online: <span id="server-status">Connected</span></div>
-        </div>
-    </footer>
 
     <!-- Firebase 10 Web SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="app.js?v=2.2"></script>
+    <script src="app.js?v=2.5"></script>
 </body>
 </html>
