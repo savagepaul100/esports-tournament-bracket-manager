@@ -1,0 +1,252 @@
+package com.esports.desktop.ui;
+
+import com.esports.desktop.client.ApiClient;
+import com.esports.desktop.model.MatchDto;
+import com.esports.desktop.model.TournamentDto;
+import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+
+import java.util.*;
+
+public class BracketView extends VBox {
+    private final ApiClient apiClient;
+    private final ComboBox<TournamentDto> cmbTournament;
+    private final HBox bracketContainer;
+    private final ScrollPane scrollPane;
+
+    public BracketView(ApiClient apiClient) {
+        this.apiClient = apiClient;
+        setSpacing(16);
+        setPadding(new Insets(24));
+        getStyleClass().add("content-area");
+
+        // Header
+        VBox headerBox = new VBox(4);
+        Label title = new Label("INTERACTIVE BRACKET & TREE ADVANCEMENT");
+        title.getStyleClass().add("view-title");
+        Label subtitle = new Label("Generate single-elimination tournament trees with byes, track live scores, and inspect progression.");
+        subtitle.getStyleClass().add("view-subtitle");
+        headerBox.getChildren().addAll(title, subtitle);
+
+        // Control bar
+        HBox topBar = new HBox(12);
+        topBar.setAlignment(Pos.CENTER_LEFT);
+
+        Label lblSelect = new Label("Select Tournament:");
+        lblSelect.setStyle("-fx-font-weight: bold; -fx-text-fill: #94a3b8;");
+
+        cmbTournament = new ComboBox<>();
+        cmbTournament.setPrefWidth(320);
+        cmbTournament.setOnAction(e -> loadBracket());
+
+        Button btnGenerate = new Button("⚡ Generate Bracket");
+        btnGenerate.getStyleClass().add("btn-primary");
+        btnGenerate.setOnAction(e -> generateBracket());
+
+        Button btnRefresh = new Button("↻ Refresh");
+        btnRefresh.getStyleClass().add("btn-outline");
+        btnRefresh.setOnAction(e -> {
+            loadTournaments();
+            loadBracket();
+        });
+
+        topBar.getChildren().addAll(lblSelect, cmbTournament, btnGenerate, btnRefresh);
+
+        // Bracket Canvas/Container
+        bracketContainer = new HBox(28);
+        bracketContainer.setStyle("-fx-padding: 24; -fx-background-color: #0d111c; -fx-background-radius: 12;");
+        bracketContainer.setAlignment(Pos.CENTER_LEFT);
+
+        scrollPane = new ScrollPane(bracketContainer);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setStyle("-fx-background-color: transparent; -fx-border-color: rgba(255,255,255,0.08); -fx-border-radius: 12;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+        getChildren().addAll(headerBox, topBar, scrollPane);
+        loadTournaments();
+    }
+
+    private void loadTournaments() {
+        List<TournamentDto> list = apiClient.getTournaments();
+        cmbTournament.setItems(FXCollections.observableArrayList(list));
+        if (!list.isEmpty() && cmbTournament.getValue() == null) {
+            cmbTournament.setValue(list.get(0));
+            loadBracket();
+        }
+    }
+
+    private void generateBracket() {
+        TournamentDto selected = cmbTournament.getValue();
+        if (selected == null) {
+            showAlert("Please select a tournament first.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Bracket Generation");
+        confirm.setHeaderText("Generate single-elimination bracket for " + selected.getName() + "?");
+        confirm.setContentText("This will calculate power-of-two slots, assign BYEs for unseeded teams, and link round matches.");
+
+        Optional<ButtonType> res = confirm.showAndWait();
+        if (res.isPresent() && res.get() == ButtonType.OK) {
+            List<MatchDto> matches = apiClient.generateBracket(selected.getId());
+            if (!matches.isEmpty()) {
+                showAlert("Bracket successfully generated with " + matches.size() + " matches!");
+                loadBracket();
+            } else {
+                showAlert("Could not generate bracket. Ensure at least 2 approved teams exist.");
+            }
+        }
+    }
+
+    private void loadBracket() {
+        bracketContainer.getChildren().clear();
+        TournamentDto selected = cmbTournament.getValue();
+        if (selected == null) return;
+
+        List<MatchDto> matches = apiClient.getMatches(selected.getId());
+        if (matches.isEmpty()) {
+            Label empty = new Label("No matches generated yet. Click 'Generate Bracket' above once teams are approved.");
+            empty.setStyle("-fx-font-size: 14px; -fx-text-fill: #64748b; -fx-padding: 40;");
+            bracketContainer.getChildren().add(empty);
+            return;
+        }
+
+        // Group by round
+        Map<Integer, List<MatchDto>> roundMap = new TreeMap<>();
+        for (MatchDto m : matches) {
+            roundMap.computeIfAbsent(m.getRound(), k -> new ArrayList<>()).add(m);
+        }
+
+        for (Map.Entry<Integer, List<MatchDto>> entry : roundMap.entrySet()) {
+            int roundNum = entry.getKey();
+            List<MatchDto> roundMatches = entry.getValue();
+
+            VBox roundCol = new VBox(20);
+            roundCol.setMinWidth(260);
+            roundCol.setAlignment(Pos.CENTER);
+
+            String rTitle = roundMatches.get(0).getRoundName() != null ? roundMatches.get(0).getRoundName() : "Round " + roundNum;
+            Label colHeader = new Label(rTitle.toUpperCase());
+            colHeader.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #00f0ff; -fx-padding: 0 0 10 0;");
+            roundCol.getChildren().add(colHeader);
+
+            for (MatchDto m : roundMatches) {
+                roundCol.getChildren().add(createMatchCard(m));
+            }
+
+            bracketContainer.getChildren().add(roundCol);
+        }
+    }
+
+    private VBox createMatchCard(MatchDto m) {
+        VBox card = new VBox(6);
+        card.getStyleClass().add("bracket-match-node");
+        if ("LIVE".equals(m.getStatus())) {
+            card.setStyle("-fx-border-color: #ff3366; -fx-border-width: 1.5;");
+        }
+
+        // Top info
+        HBox top = new HBox(8);
+        top.setAlignment(Pos.CENTER_LEFT);
+        Label numLbl = new Label("#" + m.getMatchNumber() + " " + (m.getMapName() != null ? m.getMapName() : ""));
+        numLbl.setStyle("-fx-font-size: 10px; -fx-text-fill: #64748b; -fx-font-weight: bold;");
+        HBox.setHgrow(numLbl, Priority.ALWAYS);
+
+        Label statusBadge = new Label(m.getStatus());
+        if ("LIVE".equals(m.getStatus())) {
+            statusBadge.getStyleClass().addAll("badge-pill", "badge-live-fx");
+        } else if ("COMPLETE".equals(m.getStatus())) {
+            statusBadge.getStyleClass().addAll("badge-pill", "badge-green-fx");
+        } else {
+            statusBadge.getStyleClass().addAll("badge-pill", "badge-purple-fx");
+        }
+        top.getChildren().addAll(numLbl, statusBadge);
+
+        // Team A
+        HBox teamARow = createTeamRow(m.getTeamAName(), m.getScoreA(), m.getTeamAId() != null && m.getTeamAId().equals(m.getWinnerId()));
+        // Team B
+        HBox teamBRow = createTeamRow(m.getTeamBName(), m.getScoreB(), m.getTeamBId() != null && m.getTeamBId().equals(m.getWinnerId()));
+
+        card.getChildren().addAll(top, teamARow, teamBRow);
+
+        // Quick action: click to enter or update score
+        if (!m.isBye()) {
+            card.setStyle(card.getStyle() + "; -fx-cursor: hand;");
+            card.setOnMouseClicked(e -> promptEnterScore(m));
+        }
+
+        return card;
+    }
+
+    private HBox createTeamRow(String name, int score, boolean isWinner) {
+        HBox row = new HBox(8);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-padding: 4 6; -fx-background-radius: 4;" + (isWinner ? "-fx-background-color: rgba(0, 255, 157, 0.1);" : ""));
+
+        Label nameLbl = new Label((isWinner ? "👑 " : "") + (name != null ? name : "TBD"));
+        nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: " + (isWinner ? "#00ff9d;" : "#ffffff;"));
+        HBox.setHgrow(nameLbl, Priority.ALWAYS);
+
+        Label scoreLbl = new Label(String.valueOf(score));
+        scoreLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: " + (isWinner ? "#00ff9d;" : "#94a3b8;"));
+
+        row.getChildren().addAll(nameLbl, scoreLbl);
+        return row;
+    }
+
+    private void promptEnterScore(MatchDto match) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("RECORD MATCH RESULT");
+        dialog.setHeaderText("Match #" + match.getMatchNumber() + ": " + match.getTeamAName() + " vs " + match.getTeamBName());
+
+        ButtonType btnSave = new ButtonType("Confirm & Advance Winner", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnSave, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
+
+        TextField txtScoreA = new TextField(String.valueOf(match.getScoreA()));
+        TextField txtScoreB = new TextField(String.valueOf(match.getScoreB()));
+        TextField txtReason = new TextField("Regular time completion");
+
+        grid.add(new Label(match.getTeamAName() + " Score:"), 0, 0);
+        grid.add(txtScoreA, 1, 0);
+        grid.add(new Label(match.getTeamBName() + " Score:"), 0, 1);
+        grid.add(txtScoreB, 1, 1);
+        grid.add(new Label("Reason / Audit Note:"), 0, 2);
+        grid.add(txtReason, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == btnSave) {
+                try {
+                    int sA = Integer.parseInt(txtScoreA.getText());
+                    int sB = Integer.parseInt(txtScoreB.getText());
+                    boolean ok = apiClient.recordMatchScore(match.getId(), sA, sB, txtReason.getText());
+                    if (ok) {
+                        loadBracket();
+                    } else {
+                        showAlert("Failed to record score. Note that matches cannot end in a draw in single-elimination.");
+                    }
+                } catch (NumberFormatException ex) {
+                    showAlert("Please enter valid numeric scores.");
+                }
+            }
+        });
+    }
+
+    private void showAlert(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Nexus Arena Organizer");
+        alert.setHeaderText(null);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+}

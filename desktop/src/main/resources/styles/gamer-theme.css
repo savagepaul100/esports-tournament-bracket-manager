@@ -1,0 +1,287 @@
+/* NEXUS ARENA - JavaFX Gamer UI Theme */
+
+.root {
+    -fx-base: #090c14;
+    -fx-background-color: #090c14;
+    -fx-focus-color: #00f0ff;
+    -fx-faint-focus-color: transparent;
+    -fx-font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #f1f5f9;
+}
+
+/* Sidebar */
+.sidebar {
+    -fx-background-color: #0f1422;
+    -fx-border-color: transparent rgba(255, 255, 255, 0.08) transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 18 12;
+}
+
+.brand-label {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 0 0 15 8;
+}
+
+.brand-accent {
+    -fx-text-fill: #00f0ff;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-alignment: BASELINE_LEFT;
+    -fx-padding: 10 14;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.05);
+    -fx-text-fill: #ffffff;
+}
+
+.nav-button.active {
+    -fx-background-color: rgba(0, 240, 255, 0.12);
+    -fx-text-fill: #00f0ff;
+    -fx-border-color: transparent transparent transparent #00f0ff;
+    -fx-border-width: 0 0 0 3;
+}
+
+/* Main Content Area */
+.content-area {
+    -fx-background-color: #090c14;
+    -fx-padding: 24;
+}
+
+.view-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.view-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+    -fx-padding: 0 0 15 0;
+}
+
+/* Stat Cards */
+.stat-card {
+    -fx-background-color: #131929;
+    -fx-background-radius: 10;
+    -fx-border-color: rgba(255, 255, 255, 0.07);
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.stat-value {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+}
+
+.stat-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 600;
+}
+
+/* Buttons */
+.btn-primary {
+    -fx-background-color: linear-gradient(to bottom right, #8b5cf6, #6d28d9);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-padding: 8 18;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to bottom right, #9d74f8, #7c3aed);
+}
+
+.btn-cyan {
+    -fx-background-color: #00f0ff;
+    -fx-text-fill: #080a11;
+    -fx-font-weight: bold;
+    -fx-padding: 8 18;
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+}
+
+.btn-cyan:hover {
+    -fx-background-color: #38f4ff;
+}
+
+.btn-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: rgba(255, 255, 255, 0.15);
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+    -fx-text-fill: #e2e8f0;
+    -fx-font-weight: 600;
+    -fx-padding: 7 16;
+    -fx-cursor: hand;
+}
+
+.btn-outline:hover {
+    -fx-border-color: #8b5cf6;
+    -fx-text-fill: #8b5cf6;
+    -fx-background-color: rgba(139, 92, 246, 0.08);
+}
+
+.btn-danger {
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-border-color: rgba(239, 68, 68, 0.4);
+    -fx-border-radius: 6;
+    -fx-text-fill: #ef4444;
+    -fx-font-weight: bold;
+    -fx-padding: 7 16;
+    -fx-cursor: hand;
+}
+
+.btn-danger:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-success {
+    -fx-background-color: rgba(16, 185, 129, 0.15);
+    -fx-border-color: rgba(16, 185, 129, 0.4);
+    -fx-border-radius: 6;
+    -fx-text-fill: #10b981;
+    -fx-font-weight: bold;
+    -fx-padding: 7 16;
+    -fx-cursor: hand;
+}
+
+.btn-success:hover {
+    -fx-background-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Cards & Containers */
+.card-panel {
+    -fx-background-color: #121726;
+    -fx-background-radius: 10;
+    -fx-border-color: rgba(255, 255, 255, 0.07);
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 18;
+}
+
+/* Bracket Match Card */
+.bracket-match-node {
+    -fx-background-color: #151b2c;
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(255, 255, 255, 0.09);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 10;
+}
+
+.bracket-match-node:hover {
+    -fx-border-color: #8b5cf6;
+}
+
+.bracket-match-node.live {
+    -fx-border-color: #ff3366;
+}
+
+/* Badges */
+.badge-pill {
+    -fx-background-radius: 4;
+    -fx-padding: 3 8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.badge-live-fx {
+    -fx-background-color: rgba(255, 51, 102, 0.18);
+    -fx-text-fill: #ff3366;
+    -fx-border-color: rgba(255, 51, 102, 0.4);
+    -fx-border-radius: 4;
+}
+
+.badge-purple-fx {
+    -fx-background-color: rgba(139, 92, 246, 0.18);
+    -fx-text-fill: #a78bfa;
+    -fx-border-color: rgba(139, 92, 246, 0.4);
+    -fx-border-radius: 4;
+}
+
+.badge-green-fx {
+    -fx-background-color: rgba(0, 255, 157, 0.15);
+    -fx-text-fill: #00ff9d;
+    -fx-border-color: rgba(0, 255, 157, 0.4);
+    -fx-border-radius: 4;
+}
+
+/* Form Controls */
+.text-field, .text-area, .combo-box {
+    -fx-background-color: #0c0f18;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+    -fx-border-radius: 6;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 7 10;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: #00f0ff;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #0c0f18;
+    -fx-text-fill: #ffffff;
+}
+
+/* TableView */
+.table-view {
+    -fx-background-color: #121726;
+    -fx-border-color: rgba(255, 255, 255, 0.07);
+    -fx-border-radius: 8;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #0b0f1a;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.08) transparent;
+    -fx-padding: 8;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.table-row-cell {
+    -fx-background-color: #121726;
+    -fx-border-color: transparent transparent rgba(255, 255, 255, 0.03) transparent;
+    -fx-padding: 4;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #101422;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #182033;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: rgba(0, 240, 255, 0.15);
+    -fx-text-fill: #00f0ff;
+}
+
+.table-cell {
+    -fx-text-fill: #f1f5f9;
+}
