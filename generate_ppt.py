@@ -87,9 +87,11 @@ def build_presentation():
     top_bar.fill.fore_color.rgb = COLOR_RED
     top_bar.line.fill.background()
 
-    # Logo
+    # Logo (SRM University Emblem left, Nexus Arena Product Logo right)
     if os.path.exists("srm_logo.png"):
         slide1.shapes.add_picture("srm_logo.png", Inches(0.8), Inches(0.8), width=Inches(1.5))
+    if os.path.exists("app-logo.png"):
+        slide1.shapes.add_picture("app-logo.png", Inches(11.0), Inches(0.8), width=Inches(1.5))
 
     # University header
     tb = slide1.shapes.add_textbox(Inches(2.5), Inches(0.85), Inches(10), Inches(1.2))

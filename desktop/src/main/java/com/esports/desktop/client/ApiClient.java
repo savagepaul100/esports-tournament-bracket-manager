@@ -3,6 +3,10 @@ package com.esports.desktop.client;
 import com.esports.desktop.model.*;
 import javafx.application.Platform;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -19,12 +23,20 @@ import java.util.function.Consumer;
  */
 public class ApiClient {
 
-    public static final String CURRENT_VERSION = "2.5.0";
+    public static final String CURRENT_VERSION = "2.5.1";
     public static final String UPDATE_CHECK_URL = "https://nexusarena-esports.web.app/version.json";
+
+    public enum ConnectionState {
+        CONNECTING,
+        ONLINE,
+        OFFLINE_CACHE
+    }
 
     private FirebaseClient firebase;
     private UserDto currentUser;
     private String connectionError;
+    private volatile ConnectionState connectionState = ConnectionState.CONNECTING;
+    private final List<Consumer<ConnectionState>> connectionListeners = new CopyOnWriteArrayList<>();
 
     // Fast In-Memory Caches for 0ms UI response
     private final List<TournamentDto> cachedTournaments = new CopyOnWriteArrayList<>();
@@ -57,16 +69,47 @@ public class ApiClient {
         backgroundExecutor.submit(() -> {
             try {
                 this.firebase = FirebaseClient.getInstance();
-                refreshFromCloudAsync(null);
+                this.connectionError = null;
+                // Fetch tournaments first to establish fast sync
+                List<TournamentDto> trns = this.firebase.getTournaments();
+                if (trns != null && !trns.isEmpty()) {
+                    cachedTournaments.clear();
+                    cachedTournaments.addAll(trns);
+                }
+                notifyConnectionListeners(ConnectionState.ONLINE);
+
+                // Fetch remainder in background
+                refreshFromCloudAsync(() -> {
+                    notifyConnectionListeners(ConnectionState.ONLINE);
+                });
             } catch (Exception e) {
                 this.connectionError = e.getMessage();
-                System.err.println("Firebase init notice: " + e.getMessage());
+                notifyConnectionListeners(ConnectionState.OFFLINE_CACHE);
+                System.err.println("Firebase init fallback to local cache: " + e.getMessage());
             }
         });
     }
 
+    public void addConnectionListener(Consumer<ConnectionState> listener) {
+        connectionListeners.add(listener);
+        listener.accept(this.connectionState);
+    }
+
+    private void notifyConnectionListeners(ConnectionState state) {
+        this.connectionState = state;
+        for (Consumer<ConnectionState> listener : connectionListeners) {
+            try {
+                listener.accept(state);
+            } catch (Exception ignored) {}
+        }
+    }
+
     public boolean isConnected() {
-        return firebase != null;
+        return firebase != null && connectionState == ConnectionState.ONLINE;
+    }
+
+    public ConnectionState getConnectionState() {
+        return connectionState;
     }
 
     public String getConnectionError() {
@@ -509,6 +552,7 @@ public class ApiClient {
         public String latestVersion;
         public String releaseNotes;
         public String downloadUrl;
+        public String jarUrl;
         public String message;
     }
 
@@ -529,10 +573,12 @@ public class ApiClient {
                         String version = extractJsonField(json, "version");
                         String notes = extractJsonField(json, "releaseNotes");
                         String dlUrl = extractJsonField(json, "downloadUrl");
+                        String jarUrl = extractJsonField(json, "jarUrl");
 
                         res.latestVersion = version != null ? version : CURRENT_VERSION;
                         res.releaseNotes = notes != null ? notes : "Performance updates and fixes.";
                         res.downloadUrl = dlUrl;
+                        res.jarUrl = jarUrl != null ? jarUrl : "https://nexusarena-esports.web.app/download/NexusArena.jar";
 
                         if (res.latestVersion != null && !res.latestVersion.equalsIgnoreCase(CURRENT_VERSION)) {
                             res.updateAvailable = true;
@@ -544,12 +590,128 @@ public class ApiClient {
                     }
                 } else {
                     res.message = "Update server status: " + conn.getResponseCode();
+                    res.jarUrl = "https://nexusarena-esports.web.app/download/NexusArena.jar";
                 }
             } catch (Exception ex) {
                 res.message = "Update check notice: " + ex.getMessage();
+                res.jarUrl = "https://nexusarena-esports.web.app/download/NexusArena.jar";
             } finally {
                 if (onResult != null) {
                     Platform.runLater(() -> onResult.accept(res));
+                }
+            }
+        });
+    }
+
+    public void downloadAndInstallUpdateAsync(
+            String targetDownloadUrl,
+            Consumer<Double> onProgress,
+            Consumer<String> onStatus,
+            Consumer<String> onError) {
+        backgroundExecutor.submit(() -> {
+            try {
+                if (onStatus != null) Platform.runLater(() -> onStatus.accept("Locating application directory..."));
+
+                File appDir = null;
+                try {
+                    URI codeUri = ApiClient.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+                    File codeFile = new File(codeUri);
+                    appDir = codeFile.isDirectory() ? codeFile : codeFile.getParentFile();
+                } catch (Exception ex) {
+                    appDir = new File(".");
+                }
+                if (appDir == null || !appDir.exists()) {
+                    appDir = new File(".");
+                }
+
+                File tempJar = new File(appDir, "NexusArena.jar.update");
+                if (tempJar.exists()) {
+                    tempJar.delete();
+                }
+
+                if (onStatus != null) Platform.runLater(() -> onStatus.accept("Connecting to cloud download server..."));
+
+                String downloadEndpoint = (targetDownloadUrl != null && !targetDownloadUrl.isBlank())
+                        ? targetDownloadUrl : "https://nexusarena-esports.web.app/download/NexusArena.jar";
+
+                URL url = new URI(downloadEndpoint).toURL();
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setRequestProperty("User-Agent", "NexusArenaAutoUpdater/" + CURRENT_VERSION);
+                conn.connect();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP) {
+                    String newUrl = conn.getHeaderField("Location");
+                    conn = (HttpURLConnection) new URI(newUrl).toURL().openConnection();
+                    conn.setRequestProperty("User-Agent", "NexusArenaAutoUpdater/" + CURRENT_VERSION);
+                    conn.connect();
+                    responseCode = conn.getResponseCode();
+                }
+
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("Server responded with HTTP " + responseCode);
+                }
+
+                long contentLength = conn.getContentLengthLong();
+                if (onStatus != null) {
+                    String sizeStr = contentLength > 0 ? String.format(" (%.1f MB)", contentLength / (1024.0 * 1024.0)) : "";
+                    Platform.runLater(() -> onStatus.accept("Downloading latest Nexus Arena update" + sizeStr + "..."));
+                }
+
+                try (InputStream in = conn.getInputStream();
+                     FileOutputStream out = new FileOutputStream(tempJar)) {
+                    byte[] buffer = new byte[32768];
+                    long totalBytesRead = 0;
+                    int bytesRead;
+
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                        totalBytesRead += bytesRead;
+                        if (contentLength > 0 && onProgress != null) {
+                            double prog = (double) totalBytesRead / (double) contentLength;
+                            Platform.runLater(() -> onProgress.accept(prog));
+                        }
+                    }
+                    out.flush();
+                }
+
+                if (!tempJar.exists() || tempJar.length() < 1000000) {
+                    throw new IOException("Downloaded update file is incomplete (size: " + tempJar.length() + " bytes).");
+                }
+
+                if (onStatus != null) Platform.runLater(() -> onStatus.accept("Update verified! Relaunching Nexus Arena..."));
+
+                File updateScript = new File(appDir, "apply-update.bat");
+                String scriptContent = "@echo off\r\n" +
+                        "chcp 65001 >nul\r\n" +
+                        "timeout /t 2 /nobreak >nul\r\n" +
+                        "if exist \"%~dp0NexusArena.jar.update\" (\r\n" +
+                        "    move /y \"%~dp0NexusArena.jar.update\" \"%~dp0NexusArena.jar\" >nul\r\n" +
+                        ")\r\n" +
+                        "if exist \"%~dp0NexusArena.exe\" (\r\n" +
+                        "    start \"\" \"%~dp0NexusArena.exe\"\r\n" +
+                        ") else if exist \"%~dp0NexusArena.bat\" (\r\n" +
+                        "    start \"\" \"%~dp0NexusArena.bat\"\r\n" +
+                        ") else (\r\n" +
+                        "    start \"\" javaw -jar \"%~dp0NexusArena.jar\"\r\n" +
+                        ")\r\n" +
+                        "del \"%~f0\"\r\n";
+
+                java.nio.file.Files.writeString(updateScript.toPath(), scriptContent);
+
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "/b", updateScript.getAbsolutePath());
+                pb.directory(appDir);
+                pb.start();
+
+                Thread.sleep(600);
+                Platform.exit();
+                System.exit(0);
+
+            } catch (Exception e) {
+                System.err.println("Auto-updater failure: " + e.getMessage());
+                if (onError != null) {
+                    Platform.runLater(() -> onError.accept(e.getMessage()));
                 }
             }
         });

@@ -1,6 +1,6 @@
 {
-  "version": "2.5.0",
+  "version": "2.5.1",
   "downloadUrl": "https://nexusarena-esports.web.app/download/NexusArena-Organizer-Windows.zip",
-  "jarUrl": "https://nexusarena-esports.web.app/download/NexusArena.jar",
-  "releaseNotes": "Zero-lag in-memory prototype cache, tournament-level password security, 6 authentic esports titles (CS2, Valorant, Dota 2, Apex Legends, BGMI, Rocket League), and clean typography."
+  "jarUrl": "https://nexusarena-esports.web.app/download/NexusArena-Organizer-Windows.zip",
+  "releaseNotes": "Official professional esports emblem logo, 1-click automated in-app updater, instant cloud sync with reactive listeners, and zero startup latency."
 }

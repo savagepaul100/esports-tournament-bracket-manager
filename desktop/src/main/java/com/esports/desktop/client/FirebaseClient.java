@@ -7,6 +7,8 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.*;
@@ -25,7 +27,22 @@ public class FirebaseClient {
         InputStream serviceAccount = getClass().getClassLoader()
                 .getResourceAsStream("firebase-service-account.json");
         if (serviceAccount == null) {
-            throw new IllegalStateException("firebase-service-account.json not found in resources. Cannot connect to Firebase.");
+            serviceAccount = FirebaseClient.class.getResourceAsStream("/firebase-service-account.json");
+        }
+        if (serviceAccount == null) {
+            File f = new File("firebase-service-account.json");
+            if (f.exists()) {
+                serviceAccount = new FileInputStream(f);
+            }
+        }
+        if (serviceAccount == null) {
+            File f = new File("desktop/src/main/resources/firebase-service-account.json");
+            if (f.exists()) {
+                serviceAccount = new FileInputStream(f);
+            }
+        }
+        if (serviceAccount == null) {
+            throw new IllegalStateException("firebase-service-account.json not found in resources or application directory. Cannot connect to Firebase.");
         }
         if (FirebaseApp.getApps().isEmpty()) {
             FirebaseOptions options = FirebaseOptions.builder()

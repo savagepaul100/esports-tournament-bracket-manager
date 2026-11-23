@@ -10,9 +10,13 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.awt.Desktop;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -54,9 +58,6 @@ public class EsportsDesktopApplication extends Application {
         HBox footer = buildFooter();
         rootLayout.setBottom(footer);
 
-        // Update connection status
-        updateConnectionUi(apiClient.isConnected());
-
         // Refresh tournaments dropdown for active picker
         refreshTournamentsDropdown();
 
@@ -73,18 +74,42 @@ public class EsportsDesktopApplication extends Application {
             scene.getStylesheets().add(css);
         }
 
+        // Set Application Icons (Multiple resolutions for crisp titlebar, taskbar, Alt-Tab)
+        try {
+            int[] iconSizes = {256, 128, 64, 32, 16};
+            for (int s : iconSizes) {
+                InputStream iconStream = getClass().getResourceAsStream("/icons/app-logo-" + s + ".png");
+                if (iconStream != null) {
+                    primaryStage.getIcons().add(new Image(iconStream));
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("Notice: Could not load stage icons: " + ex.getMessage());
+        }
+
         primaryStage.setTitle("NEXUS ARENA | E-Sports Tournament & Bracket Manager");
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(1080);
         primaryStage.setMinHeight(680);
         primaryStage.show();
 
-        if (!apiClient.isConnected()) {
-            Platform.runLater(() -> CyberAlert.showError("Cloud Sync Status",
-                    "Could not connect to Cloud Firestore.\n" +
-                    "Error: " + apiClient.getConnectionError() + "\n\n" +
-                    "Running with local high-speed prototype cache."));
-        }
+        // Register reactive connection listener for 100% smooth cloud sync without false error popups
+        apiClient.addConnectionListener(state -> {
+            Platform.runLater(() -> {
+                if (state == ApiClient.ConnectionState.ONLINE) {
+                    updateConnectionUi(true);
+                    refreshTournamentsDropdown();
+                    switchView(currentViewKey);
+                } else if (state == ApiClient.ConnectionState.CONNECTING) {
+                    if (lblConnectionStatus != null) {
+                        lblConnectionStatus.setText("SYNCING CLOUD...");
+                        lblConnectionStatus.getStyleClass().setAll("badge-pill", "badge-live-fx");
+                    }
+                } else {
+                    updateConnectionUi(false);
+                }
+            });
+        });
     }
 
     private HBox buildTopBar() {
@@ -144,17 +169,27 @@ public class EsportsDesktopApplication extends Application {
         sidebar.setPrefWidth(220);
         sidebar.getStyleClass().add("sidebar");
 
-        // Brand
-        HBox brandBox = new HBox(6);
+        // Brand with Official Professional Logo
+        HBox brandBox = new HBox(8);
         brandBox.setAlignment(Pos.CENTER_LEFT);
         brandBox.setStyle("-fx-padding: 4 0 12 4;");
-        Label icon = new Label("//");
-        icon.setStyle("-fx-font-size: 16px; -fx-font-weight: 900; -fx-text-fill: #dc2626;");
+        try {
+            InputStream logoStream = getClass().getResourceAsStream("/icons/app-logo-64.png");
+            if (logoStream != null) {
+                ImageView logoView = new ImageView(new Image(logoStream));
+                logoView.setFitWidth(30);
+                logoView.setFitHeight(30);
+                logoView.setPreserveRatio(true);
+                logoView.setSmooth(true);
+                brandBox.getChildren().add(logoView);
+            }
+        } catch (Exception ignored) {}
+
         Label brand = new Label("NEXUS ");
         brand.getStyleClass().add("brand-label");
         Label brandAccent = new Label("ARENA");
         brandAccent.getStyleClass().addAll("brand-label", "brand-accent");
-        brandBox.getChildren().addAll(icon, brand, brandAccent);
+        brandBox.getChildren().addAll(brand, brandAccent);
 
         // Navigation Group (Vertical side panel)
         VBox navGroup = new VBox(4);
@@ -198,20 +233,132 @@ public class EsportsDesktopApplication extends Application {
         apiClient.checkForUpdatesAsync(res -> {
             btnUpdate.setDisable(false);
             btnUpdate.setText("Check for Updates");
-
-            if (res.updateAvailable) {
-                boolean downloadNow = CyberAlert.showConfirm("Update Available (" + res.latestVersion + ")",
-                        res.message + "\n\nRelease Notes: " + res.releaseNotes,
-                        "Would you like to open the website to download the latest Windows package now?");
-                if (downloadNow) {
-                    openUrl("https://nexusarena-esports.web.app");
-                }
-            } else {
-                CyberAlert.showInfo("Nexus Arena Up to Date",
-                        "You are currently running the latest version (v" + ApiClient.CURRENT_VERSION + ").\n" +
-                        "All cloud synchronization protocols are active.");
-            }
+            showUpdateDialog(res);
         });
+    }
+
+    private void showUpdateDialog(ApiClient.UpdateCheckResult res) {
+        Stage updateStage = new Stage();
+        updateStage.initModality(Modality.APPLICATION_MODAL);
+        updateStage.setTitle("NEXUS ARENA | Automated Cloud Updater");
+
+        try {
+            InputStream iconStream = getClass().getResourceAsStream("/icons/app-logo-64.png");
+            if (iconStream != null) updateStage.getIcons().add(new Image(iconStream));
+        } catch (Exception ignored) {}
+
+        VBox root = new VBox(14);
+        root.setStyle("-fx-background-color: #0d0e15; -fx-padding: 24; -fx-border-color: #dc2626; -fx-border-width: 1.5;");
+        root.setPrefWidth(540);
+
+        // Header
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+        try {
+            InputStream iconStream = getClass().getResourceAsStream("/icons/app-logo-64.png");
+            if (iconStream != null) {
+                ImageView logo = new ImageView(new Image(iconStream));
+                logo.setFitWidth(38);
+                logo.setFitHeight(38);
+                logo.setPreserveRatio(true);
+                header.getChildren().add(logo);
+            }
+        } catch (Exception ignored) {}
+
+        VBox titleBox = new VBox(2);
+        Label lblTitle = new Label("NEXUS ARENA AUTO-UPDATER");
+        lblTitle.setStyle("-fx-font-size: 14px; -fx-font-weight: 900; -fx-text-fill: #ffffff;");
+        Label lblSub = new Label("Direct In-App Automatic Cloud Installation");
+        lblSub.setStyle("-fx-font-size: 11px; -fx-text-fill: #ea580c; -fx-font-weight: bold;");
+        titleBox.getChildren().addAll(lblTitle, lblSub);
+        header.getChildren().add(titleBox);
+
+        // Version info grid
+        GridPane infoGrid = new GridPane();
+        infoGrid.setHgap(12);
+        infoGrid.setVgap(6);
+        infoGrid.setStyle("-fx-background-color: #181926; -fx-padding: 12; -fx-background-radius: 4; -fx-border-color: #27273a; -fx-border-width: 1;");
+
+        Label lblCurKey = new Label("Current Version:");
+        lblCurKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #9ca3af; -fx-font-size: 11px;");
+        Label lblCurVal = new Label("v" + ApiClient.CURRENT_VERSION);
+        lblCurVal.setStyle("-fx-font-weight: 900; -fx-text-fill: #ffffff; -fx-font-size: 11px;");
+
+        Label lblLatKey = new Label("Cloud Latest:");
+        lblLatKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #9ca3af; -fx-font-size: 11px;");
+        Label lblLatVal = new Label("v" + res.latestVersion);
+        lblLatVal.setStyle("-fx-font-weight: 900; -fx-text-fill: #22c55e; -fx-font-size: 11px;");
+
+        Label lblNotesKey = new Label("Release Notes:");
+        lblNotesKey.setStyle("-fx-font-weight: bold; -fx-text-fill: #9ca3af; -fx-font-size: 11px;");
+        Label lblNotesVal = new Label(res.releaseNotes != null ? res.releaseNotes : "Security and performance improvements.");
+        lblNotesVal.setWrapText(true);
+        lblNotesVal.setMaxWidth(380);
+        lblNotesVal.setStyle("-fx-text-fill: #d1d5db; -fx-font-size: 10.5px;");
+
+        infoGrid.add(lblCurKey, 0, 0);
+        infoGrid.add(lblCurVal, 1, 0);
+        infoGrid.add(lblLatKey, 0, 1);
+        infoGrid.add(lblLatVal, 1, 1);
+        infoGrid.add(lblNotesKey, 0, 2);
+        infoGrid.add(lblNotesVal, 1, 2);
+
+        // Progress Bar
+        ProgressBar progressBar = new ProgressBar(0);
+        progressBar.setMaxWidth(Double.MAX_VALUE);
+        progressBar.setStyle("-fx-accent: #dc2626;");
+        progressBar.setVisible(false);
+
+        Label lblStatus = new Label(res.updateAvailable
+                ? "New build ready for 1-click automatic download and install."
+                : "Your desktop client is running the latest version.");
+        lblStatus.setStyle("-fx-font-size: 11px; -fx-text-fill: #f3f4f6; -fx-font-weight: 600;");
+
+        // Action Buttons
+        HBox btnBox = new HBox(10);
+        btnBox.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnAction = new Button(res.updateAvailable ? "Download & Install Automatically" : "Force Reinstall / Update");
+        btnAction.getStyleClass().add("btn-primary");
+        btnAction.setStyle("-fx-background-color: #dc2626; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        Button btnClose = new Button("Close");
+        btnClose.getStyleClass().add("btn-outline");
+        btnClose.setOnAction(e -> updateStage.close());
+
+        btnAction.setOnAction(e -> {
+            btnAction.setDisable(true);
+            btnClose.setDisable(true);
+            progressBar.setVisible(true);
+            progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+
+            String targetUrl = res.jarUrl != null ? res.jarUrl : "https://nexusarena-esports.web.app/download/NexusArena.jar";
+
+            apiClient.downloadAndInstallUpdateAsync(
+                    targetUrl,
+                    progress -> progressBar.setProgress(progress),
+                    status -> lblStatus.setText(status),
+                    error -> {
+                        progressBar.setVisible(false);
+                        btnAction.setDisable(false);
+                        btnClose.setDisable(false);
+                        lblStatus.setText("Update Notice: " + error);
+                        lblStatus.setStyle("-fx-font-size: 11px; -fx-text-fill: #ef4444; -fx-font-weight: bold;");
+                    }
+            );
+        });
+
+        btnBox.getChildren().addAll(btnClose, btnAction);
+        root.getChildren().addAll(header, infoGrid, lblStatus, progressBar, btnBox);
+
+        Scene scene = new Scene(root);
+        String css = getClass().getResource("/styles/gamer-theme.css") != null
+                ? getClass().getResource("/styles/gamer-theme.css").toExternalForm() : null;
+        if (css != null) scene.getStylesheets().add(css);
+
+        updateStage.setScene(scene);
+        updateStage.setResizable(false);
+        updateStage.show();
     }
 
     private Button createNavButton(String text, String viewKey) {

@@ -22,9 +22,11 @@ if %errorlevel% neq 0 (
     )
 )
 
-set "DESKTOP_JAR=desktop\target\desktop-1.0.0.jar"
+set "DESKTOP_JAR=NexusArena.jar"
 if not exist "%DESKTOP_JAR%" (
-    if exist "desktop-1.0.0.jar" (
+    if exist "desktop\target\desktop-1.0.0.jar" (
+        set "DESKTOP_JAR=desktop\target\desktop-1.0.0.jar"
+    ) else if exist "desktop-1.0.0.jar" (
         set "DESKTOP_JAR=desktop-1.0.0.jar"
     ) else if exist "..\desktop\target\desktop-1.0.0.jar" (
         set "DESKTOP_JAR=..\desktop\target\desktop-1.0.0.jar"
